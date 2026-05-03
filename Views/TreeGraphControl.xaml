@@ -1,0 +1,17 @@
+<UserControl x:Class="Josha.Views.TreeGraphControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Border x:Name="ActiveBorder"
+            BorderThickness="2"
+            CornerRadius="6"
+            Margin="4"
+            BorderBrush="{StaticResource Brush.TreeBorderInactive}">
+        <Border x:Name="Viewport"
+                ClipToBounds="True"
+                CornerRadius="4"
+                Background="{StaticResource Brush.TreeViewport}">
+            <Canvas x:Name="TreeCanvas" UseLayoutRounding="True"
+                    HorizontalAlignment="Left" VerticalAlignment="Top"/>
+        </Border>
+    </Border>
+</UserControl>

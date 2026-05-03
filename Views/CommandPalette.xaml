@@ -1,0 +1,159 @@
+<Window x:Class="Josha.Views.CommandPalette"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="clr-namespace:Josha.ViewModels"
+        xmlns:models="clr-namespace:Josha.Models"
+        mc:Ignorable="d"
+        Title="Command palette"
+        Width="640"
+        SizeToContent="Height"
+        WindowStartupLocation="CenterOwner"
+        WindowStyle="None"
+        ResizeMode="NoResize"
+        ShowInTaskbar="False"
+        AllowsTransparency="True"
+        Background="Transparent"
+        FontFamily="{DynamicResource Font.Body}"
+        Foreground="{StaticResource Brush.OnSurface}"
+        d:DataContext="{d:DesignInstance Type=vm:CommandPaletteViewModel}">
+    <Window.InputBindings>
+        <KeyBinding Key="Escape" Command="ApplicationCommands.Close"/>
+    </Window.InputBindings>
+    <Window.CommandBindings>
+        <CommandBinding Command="ApplicationCommands.Close" Executed="OnCancelCommand"/>
+    </Window.CommandBindings>
+
+    <Border Background="{StaticResource Brush.SurfaceElevated}"
+            BorderBrush="{StaticResource Brush.Outline}"
+            BorderThickness="1"
+            CornerRadius="8"
+            Effect="{StaticResource Elevation.3}">
+        <Grid Margin="2">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <Border Grid.Row="0"
+                    Padding="14,10"
+                    BorderBrush="{StaticResource Brush.OutlineSubtle}"
+                    BorderThickness="0,0,0,1">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0"
+                               Text="&#xE721;"
+                               FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                               FontSize="14"
+                               Foreground="{StaticResource Brush.OnSurfaceMuted}"
+                               VerticalAlignment="Center"
+                               Margin="0,0,10,0"/>
+                    <TextBox x:Name="QueryBox"
+                             Grid.Column="1"
+                             Text="{Binding Query, UpdateSourceTrigger=PropertyChanged}"
+                             FontSize="14"
+                             Background="Transparent"
+                             Foreground="{StaticResource Brush.OnSurface}"
+                             BorderThickness="0"
+                             Padding="0"
+                             KeyDown="OnQueryKeyDown"/>
+                </Grid>
+            </Border>
+
+            <ListBox x:Name="ResultsList"
+                     Grid.Row="1"
+                     ItemsSource="{Binding FilteredItems}"
+                     SelectedItem="{Binding Selected}"
+                     Background="Transparent"
+                     BorderThickness="0"
+                     MaxHeight="420"
+                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                     MouseDoubleClick="OnResultDoubleClick"
+                     KeyboardNavigation.TabNavigation="None"
+                     Focusable="False">
+                <ListBox.ItemContainerStyle>
+                    <Style TargetType="ListBoxItem">
+                        <Setter Property="Padding" Value="14,8"/>
+                        <Setter Property="Background" Value="Transparent"/>
+                        <Setter Property="BorderThickness" Value="0"/>
+                        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                        <Setter Property="Focusable" Value="False"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="ListBoxItem">
+                                    <Border x:Name="Bd"
+                                            Background="{TemplateBinding Background}"
+                                            Padding="{TemplateBinding Padding}"
+                                            SnapsToDevicePixels="True">
+                                        <ContentPresenter HorizontalAlignment="Stretch"/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="Bd" Property="Background"
+                                                    Value="{StaticResource Brush.SurfaceHover}"/>
+                                        </Trigger>
+                                        <Trigger Property="IsSelected" Value="True">
+                                            <Setter TargetName="Bd" Property="Background"
+                                                    Value="{StaticResource Brush.AccentSubtle}"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </ListBox.ItemContainerStyle>
+                <ListBox.ItemTemplate>
+                    <DataTemplate DataType="{x:Type models:CommandPaletteItem}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="{Binding Title}"
+                                           Foreground="{StaticResource Brush.OnSurface}"
+                                           FontSize="13"/>
+                                <TextBlock Text="{Binding Subtitle}"
+                                           Foreground="{StaticResource Brush.OnSurfaceMuted}"
+                                           FontSize="11"
+                                           TextTrimming="CharacterEllipsis"/>
+                            </StackPanel>
+                            <Border Grid.Column="1"
+                                    Background="{StaticResource Brush.SurfaceMuted}"
+                                    BorderBrush="{StaticResource Brush.OutlineSubtle}"
+                                    BorderThickness="1"
+                                    CornerRadius="3"
+                                    Padding="6,1"
+                                    VerticalAlignment="Center">
+                                <TextBlock Text="{Binding Category}"
+                                           Foreground="{StaticResource Brush.OnSurfaceMuted}"
+                                           FontSize="10"/>
+                            </Border>
+                        </Grid>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+
+            <Border Grid.Row="2"
+                    Padding="14,6"
+                    Background="{StaticResource Brush.SurfaceMuted}"
+                    BorderBrush="{StaticResource Brush.OutlineSubtle}"
+                    BorderThickness="0,1,0,0"
+                    CornerRadius="0,0,8,8">
+                <TextBlock Foreground="{StaticResource Brush.OnSurfaceSubtle}"
+                           FontSize="11">
+                    <Run Text="↑↓ navigate"/>
+                    <Run Text="·" Foreground="{StaticResource Brush.OutlineStrong}"/>
+                    <Run Text="Enter run"/>
+                    <Run Text="·" Foreground="{StaticResource Brush.OutlineStrong}"/>
+                    <Run Text="Esc close"/>
+                </TextBlock>
+            </Border>
+        </Grid>
+    </Border>
+</Window>

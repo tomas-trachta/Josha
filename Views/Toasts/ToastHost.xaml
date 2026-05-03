@@ -1,0 +1,85 @@
+<UserControl x:Class="Josha.Views.Toasts.ToastHost"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:Josha.ViewModels"
+             xmlns:svc="clr-namespace:Josha.Services"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=svc:ToastService}">
+    <!-- No Background: WPF's Transparent brush still captures hit tests, so a
+         "Transparent" overlay spanning the window would eat every click. With
+         no Background, hit-testing falls through to the panes; only the toast
+         cards (which have their own Background) remain clickable. -->
+    <ItemsControl ItemsSource="{Binding Toasts}"
+                  HorizontalAlignment="Right"
+                  VerticalAlignment="Bottom"
+                  Margin="0,0,16,16">
+        <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+                <StackPanel Orientation="Vertical"/>
+            </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+            <DataTemplate DataType="{x:Type vm:ToastViewModel}">
+                <Border Margin="0,6,0,0"
+                        MinWidth="320" MaxWidth="420"
+                        Background="{StaticResource Brush.SurfaceElevated}"
+                        BorderBrush="{StaticResource Brush.Outline}"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="12,10"
+                        Effect="{StaticResource Elevation.2}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Grid.Column="0"
+                                   Text="{Binding IconGlyph}"
+                                   FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                                   FontSize="16"
+                                   Margin="0,0,10,0"
+                                   VerticalAlignment="Top"
+                                   Foreground="{Binding IconBrushKey, Converter={StaticResource ResKeyToBrush}}"/>
+
+                        <TextBlock Grid.Column="1"
+                                   Text="{Binding Text}"
+                                   TextWrapping="Wrap"
+                                   VerticalAlignment="Center"
+                                   FontSize="12"
+                                   Foreground="{StaticResource Brush.OnSurface}"/>
+
+                        <Button Grid.Column="2"
+                                Content="{Binding ActionLabel}"
+                                Command="{Binding ActionCommand}"
+                                Visibility="{Binding ActionLabel, Converter={StaticResource StrNotEmptyToVis}}"
+                                Style="{StaticResource SecondaryButtonStyle}"
+                                MinHeight="26"
+                                Padding="10,2"
+                                Margin="8,0,0,0"
+                                FontSize="11"/>
+
+                        <Button Grid.Column="3"
+                                Content="&#xE10A;"
+                                FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                                FontSize="11"
+                                Command="{Binding DismissCommand}"
+                                ToolTip="Dismiss"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                Foreground="{StaticResource Brush.OnSurfaceMuted}"
+                                Cursor="Hand"
+                                Width="22" Height="22"
+                                Margin="6,0,0,0"
+                                Padding="0"
+                                VerticalAlignment="Top"/>
+                    </Grid>
+                </Border>
+            </DataTemplate>
+        </ItemsControl.ItemTemplate>
+    </ItemsControl>
+</UserControl>

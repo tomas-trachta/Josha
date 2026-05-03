@@ -1,0 +1,57 @@
+<UserControl x:Class="Josha.Views.FunctionKeyBar"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:Josha.ViewModels"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=vm:AppShellViewModel}"
+             d:DesignHeight="48" d:DesignWidth="900">
+    <Border Background="{StaticResource Brush.SurfaceMuted}"
+            BorderBrush="{StaticResource Brush.OutlineSubtle}"
+            BorderThickness="0,1,0,0"
+            Padding="6">
+        <UniformGrid Rows="1">
+            <Button Content="F2 Rename"
+                    Command="{Binding RenameCommand}"
+                    Style="{StaticResource SecondaryButtonStyle}"
+                    Margin="2"
+                    ToolTip="Rename the focused item (F2)"/>
+            <Button Content="F3 View"
+                    Command="{Binding ViewCommand}"
+                    Style="{StaticResource SecondaryButtonStyle}"
+                    Margin="2"
+                    ToolTip="Open the focused file in the internal viewer (text / hex), F3"/>
+            <Button Content="F4 Edit"
+                    Command="{Binding EditCommand}"
+                    Style="{StaticResource SecondaryButtonStyle}"
+                    Margin="2"
+                    ToolTip="Open the focused file in your editor (JOSHA_EDITOR / EDITOR / VISUAL env var, defaults to notepad)"/>
+            <Button Content="F5 Copy"
+                    Command="{Binding CopyCommand}"
+                    Style="{StaticResource SecondaryButtonStyle}"
+                    Margin="2"
+                    ToolTip="Copy selected items to the other pane (F5)"/>
+            <Button Content="F6 Move"
+                    Command="{Binding MoveCommand}"
+                    Style="{StaticResource SecondaryButtonStyle}"
+                    Margin="2"
+                    ToolTip="Move selected items to the other pane (F6)"/>
+            <Button Content="F7 New Folder"
+                    Command="{Binding MkdirCommand}"
+                    Style="{StaticResource SecondaryButtonStyle}"
+                    Margin="2"
+                    ToolTip="Create a new folder in the active pane (F7)"/>
+            <Button Content="F8 Delete"
+                    Command="{Binding DeleteRecycleCommand}"
+                    Style="{StaticResource SecondaryButtonStyle}"
+                    Margin="2"
+                    ToolTip="Move selected items to the Recycle Bin (Delete / F8)"/>
+            <Button Content="F10 Quit"
+                    Click="OnQuit"
+                    Style="{StaticResource SecondaryButtonStyle}"
+                    Margin="2"
+                    ToolTip="Quit the app (F10)"/>
+        </UniformGrid>
+    </Border>
+</UserControl>

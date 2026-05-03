@@ -1,0 +1,60 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- Merged after Theme.xaml so these override the Dark brush keys. -->
+
+    <SolidColorBrush x:Key="Brush.Surface"           Color="#FFFFFFFF"/>
+    <SolidColorBrush x:Key="Brush.SurfaceElevated"   Color="#FFFFFFFF"/>
+    <SolidColorBrush x:Key="Brush.SurfaceMuted"      Color="#FFF6F8FA"/>
+    <SolidColorBrush x:Key="Brush.SurfaceSunken"     Color="#FFEAEEF2"/>
+    <SolidColorBrush x:Key="Brush.SurfaceHover"      Color="#FFEAEEF2"/>
+    <SolidColorBrush x:Key="Brush.SurfacePressed"    Color="#FFD0D7DE"/>
+    <SolidColorBrush x:Key="Brush.SurfaceSelected"   Color="#FFDDF4FF"/>
+
+    <SolidColorBrush x:Key="Brush.Outline"           Color="#FFD0D7DE"/>
+    <SolidColorBrush x:Key="Brush.OutlineSubtle"     Color="#FFEAEEF2"/>
+    <SolidColorBrush x:Key="Brush.OutlineStrong"     Color="#FF8B949E"/>
+
+    <SolidColorBrush x:Key="Brush.OnSurface"         Color="#FF24292F"/>
+    <SolidColorBrush x:Key="Brush.OnSurfaceMuted"    Color="#FF57606A"/>
+    <SolidColorBrush x:Key="Brush.OnSurfaceSubtle"   Color="#FF6E7781"/>
+    <SolidColorBrush x:Key="Brush.OnSurfaceDisabled" Color="#FF8B949E"/>
+
+    <SolidColorBrush x:Key="Brush.Accent"            Color="#FF0969DA"/>
+    <SolidColorBrush x:Key="Brush.AccentHover"       Color="#FF218BFF"/>
+    <SolidColorBrush x:Key="Brush.AccentPressed"     Color="#FF0550AE"/>
+    <SolidColorBrush x:Key="Brush.AccentSubtle"      Color="#FFDDF4FF"/>
+    <SolidColorBrush x:Key="Brush.AccentMuted"       Color="#FFDDF4FF"/>
+    <SolidColorBrush x:Key="Brush.AccentSoft"        Color="#660969DA"/>
+    <SolidColorBrush x:Key="Brush.OnAccent"          Color="#FFFFFFFF"/>
+
+    <SolidColorBrush x:Key="Brush.Splitter"          Color="#FFD0D7DE"/>
+    <SolidColorBrush x:Key="Brush.SplitterHover"     Color="#FF0969DA"/>
+
+    <SolidColorBrush x:Key="Brush.Toast.Success"     Color="#FF1A7F37"/>
+    <SolidColorBrush x:Key="Brush.Toast.Warning"     Color="#FF9A6700"/>
+    <SolidColorBrush x:Key="Brush.Toast.Error"       Color="#FFCF222E"/>
+
+    <SolidColorBrush x:Key="Brush.Status.Ok"         Color="#FF1A7F37"/>
+    <SolidColorBrush x:Key="Brush.Status.Pending"    Color="#FF9A6700"/>
+    <SolidColorBrush x:Key="Brush.Status.Error"      Color="#FFCF222E"/>
+
+    <SolidColorBrush x:Key="Brush.Age.Seconds"       Color="#FFCF222E"/>
+    <SolidColorBrush x:Key="Brush.Age.Minutes"       Color="#FFBC4C00"/>
+    <SolidColorBrush x:Key="Brush.Age.Hours"         Color="#FF9A6700"/>
+    <SolidColorBrush x:Key="Brush.Age.Days"          Color="#FF1A7F37"/>
+    <SolidColorBrush x:Key="Brush.Age.Weeks"         Color="#FF0969DA"/>
+    <SolidColorBrush x:Key="Brush.Age.Months"        Color="#FF8250DF"/>
+    <SolidColorBrush x:Key="Brush.Age.Years"         Color="#FF57606A"/>
+
+    <SolidColorBrush x:Key="Brush.RowFolder"         Color="#FF388BFD"/>
+
+    <SolidColorBrush x:Key="Brush.Icon.Code"         Color="#FF1A7F37"/>
+    <SolidColorBrush x:Key="Brush.Icon.Archive"      Color="#FF9A6700"/>
+    <SolidColorBrush x:Key="Brush.Icon.Special"      Color="#FF8250DF"/>
+
+    <SolidColorBrush x:Key="Brush.TreeViewport"      Color="#FFF6F8FA"/>
+    <SolidColorBrush x:Key="Brush.TreeBorderInactive" Color="#FFEAEEF2"/>
+    <SolidColorBrush x:Key="Brush.TreeBorderActive"   Color="#FF0969DA"/>
+
+</ResourceDictionary>

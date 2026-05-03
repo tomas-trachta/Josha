@@ -1,0 +1,177 @@
+<Window x:Class="Josha.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="clr-namespace:Josha.ViewModels"
+        xmlns:views="clr-namespace:Josha.Views"
+        xmlns:toasts="clr-namespace:Josha.Views.Toasts"
+        xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
+        mc:Ignorable="d"
+        Title="Josha" Height="720" Width="1280"
+        WindowStyle="None"
+        ResizeMode="CanResize"
+        Background="Transparent"
+        UseLayoutRounding="True"
+        TextOptions.TextFormattingMode="Display"
+        TextOptions.TextRenderingMode="ClearType"
+        FontFamily="{DynamicResource Font.Body}"
+        d:DataContext="{d:DesignInstance Type=vm:AppShellViewModel}">
+
+    <shell:WindowChrome.WindowChrome>
+        <shell:WindowChrome CaptionHeight="32"
+                            ResizeBorderThickness="6"
+                            CornerRadius="0"
+                            GlassFrameThickness="0"
+                            UseAeroCaptionButtons="False"
+                            NonClientFrameEdges="None"/>
+    </shell:WindowChrome.WindowChrome>
+
+    <Window.InputBindings>
+        <KeyBinding Key="F2"     Command="{Binding RenameCommand}"/>
+        <KeyBinding Key="F3"     Command="{Binding ViewCommand}"/>
+        <KeyBinding Key="F4"     Command="{Binding EditCommand}"/>
+        <KeyBinding Key="F5"     Command="{Binding CopyCommand}"/>
+        <KeyBinding Key="F6"     Command="{Binding MoveCommand}"/>
+        <KeyBinding Key="F7"     Command="{Binding MkdirCommand}"/>
+        <KeyBinding Key="F4"     Modifiers="Shift" Command="{Binding NewFileCommand}"/>
+        <KeyBinding Key="F8"     Command="{Binding DeleteRecycleCommand}"/>
+        <KeyBinding Key="F8"     Modifiers="Shift" Command="{Binding DeletePermanentCommand}"/>
+        <KeyBinding Key="Delete" Command="{Binding DeleteRecycleCommand}"/>
+        <KeyBinding Key="Delete" Modifiers="Shift" Command="{Binding DeletePermanentCommand}"/>
+
+        <KeyBinding Key="D1"     Modifiers="Ctrl" Command="{Binding ActivePane.SwitchToListCommand}"/>
+        <KeyBinding Key="D2"     Modifiers="Ctrl" Command="{Binding ActivePane.SwitchToTilesCommand}"/>
+        <KeyBinding Key="D3"     Modifiers="Ctrl" Command="{Binding ActivePane.SwitchToDiskUsageCommand}"/>
+
+        <KeyBinding Key="R"      Modifiers="Ctrl" Command="{Binding RefreshActiveCommand}"/>
+
+        <KeyBinding Key="C"      Modifiers="Ctrl+Shift" Command="{Binding CopyPathCommand}"/>
+        <KeyBinding Key="C"      Modifiers="Ctrl+Alt"   Command="{Binding CopyNameCommand}"/>
+
+        <KeyBinding Key="Left"   Modifiers="Alt"  Command="{Binding ActivePane.BackCommand}"/>
+        <KeyBinding Key="Right"  Modifiers="Alt"  Command="{Binding ActivePane.ForwardCommand}"/>
+
+        <KeyBinding Key="T"      Modifiers="Ctrl"       Command="{Binding NewTabCommand}"/>
+        <KeyBinding Key="W"      Modifiers="Ctrl"       Command="{Binding CloseTabCommand}"/>
+        <KeyBinding Key="D"      Modifiers="Ctrl"       Command="{Binding AddBookmarkCommand}"/>
+        <KeyBinding Key="B"      Modifiers="Ctrl"       Command="{Binding OpenBookmarksCommand}"/>
+        <KeyBinding Key="Q"      Modifiers="Ctrl"       Command="{Binding TogglePreviewPaneCommand}"/>
+        <KeyBinding Key="OemComma" Modifiers="Ctrl"     Command="{Binding OpenSettingsCommand}"/>
+        <KeyBinding Key="P"      Modifiers="Ctrl"       Command="{Binding OpenCommandPaletteCommand}"/>
+
+        <KeyBinding Key="Add"      Command="{Binding SelectByPatternCommand}"/>
+        <KeyBinding Key="Subtract" Command="{Binding DeselectByPatternCommand}"/>
+        <KeyBinding Key="Multiply" Command="{Binding InvertSelectionCommand}"/>
+
+        <KeyBinding Key="N"      Modifiers="Ctrl+Shift" Command="{Binding OpenNewConnectionCommand}"/>
+        <KeyBinding Key="M"      Modifiers="Ctrl+Shift" Command="{Binding OpenSiteManagerCommand}"/>
+        <KeyBinding Key="D1"     Modifiers="Ctrl+Shift" Command="{Binding QuickConnectCommand}" CommandParameter="1"/>
+        <KeyBinding Key="D2"     Modifiers="Ctrl+Shift" Command="{Binding QuickConnectCommand}" CommandParameter="2"/>
+        <KeyBinding Key="D3"     Modifiers="Ctrl+Shift" Command="{Binding QuickConnectCommand}" CommandParameter="3"/>
+        <KeyBinding Key="D4"     Modifiers="Ctrl+Shift" Command="{Binding QuickConnectCommand}" CommandParameter="4"/>
+        <KeyBinding Key="D5"     Modifiers="Ctrl+Shift" Command="{Binding QuickConnectCommand}" CommandParameter="5"/>
+        <KeyBinding Key="D6"     Modifiers="Ctrl+Shift" Command="{Binding QuickConnectCommand}" CommandParameter="6"/>
+        <KeyBinding Key="D7"     Modifiers="Ctrl+Shift" Command="{Binding QuickConnectCommand}" CommandParameter="7"/>
+        <KeyBinding Key="D8"     Modifiers="Ctrl+Shift" Command="{Binding QuickConnectCommand}" CommandParameter="8"/>
+        <KeyBinding Key="D9"     Modifiers="Ctrl+Shift" Command="{Binding QuickConnectCommand}" CommandParameter="9"/>
+        <!-- Ctrl+Tab / Ctrl+Left / Ctrl+Right are handled in PreviewKeyDown:
+             KeyboardNavigation eats Tab before KeyBinding sees it, and the arrow
+             keys must defer to text-input word-jump when a TextBox has focus. -->
+    </Window.InputBindings>
+
+    <Border x:Name="WindowRoot"
+            Background="{StaticResource Brush.SurfaceMuted}"
+            BorderBrush="{StaticResource Brush.Outline}"
+            BorderThickness="1">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="32"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <Grid Grid.Row="0"
+                  Background="{StaticResource Brush.Surface}"
+                  MouseLeftButtonDown="OnTitleBarMouseDown">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Margin="12,0,0,0">
+                    <TextBlock Text="&#xE8B7;"
+                               FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                               FontSize="13"
+                               Foreground="{StaticResource Brush.Accent}"
+                               VerticalAlignment="Center"
+                               Margin="0,0,8,0"/>
+                    <TextBlock Text="{Binding Title, RelativeSource={RelativeSource AncestorType=Window}}"
+                               FontSize="12"
+                               Foreground="{StaticResource Brush.OnSurface}"
+                               VerticalAlignment="Center"/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="2" Orientation="Horizontal"
+                            shell:WindowChrome.IsHitTestVisibleInChrome="True">
+                    <Button x:Name="MinButton"
+                            Style="{StaticResource ChromeButtonStyle}"
+                            Content="&#xE921;"
+                            Click="OnMinimizeClick"
+                            ToolTip="Minimize"/>
+                    <Button x:Name="MaxButton"
+                            Style="{StaticResource ChromeButtonStyle}"
+                            Content="&#xE922;"
+                            Click="OnMaxRestoreClick"
+                            ToolTip="Maximize"/>
+                    <Button x:Name="CloseButton"
+                            Style="{StaticResource ChromeCloseButtonStyle}"
+                            Content="&#xE8BB;"
+                            Click="OnCloseClick"
+                            ToolTip="Close"/>
+                </StackPanel>
+            </Grid>
+
+            <Grid Grid.Row="1">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <Grid Grid.Column="0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <views:PaneTabBar Grid.Row="0" DataContext="{Binding LeftColumn}"/>
+                    <views:FilePaneView x:Name="LeftPane" Grid.Row="1"
+                                        DataContext="{Binding LeftColumn.ActiveTab}"/>
+                </Grid>
+
+                <GridSplitter Grid.Column="1" Width="3"
+                              Background="{StaticResource Brush.Outline}"
+                              HorizontalAlignment="Center" VerticalAlignment="Stretch"
+                              ResizeBehavior="PreviousAndNext"/>
+
+                <Grid Grid.Column="2">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <views:PaneTabBar Grid.Row="0" DataContext="{Binding RightColumn}"/>
+                    <views:FilePaneView x:Name="RightPane" Grid.Row="1"
+                                        DataContext="{Binding RightColumn.ActiveTab}"/>
+                </Grid>
+            </Grid>
+
+            <views:FunctionKeyBar Grid.Row="2" DataContext="{Binding}"/>
+
+            <views:StatusBarControl Grid.Row="3" DataContext="{Binding}"/>
+
+            <toasts:ToastHost Grid.RowSpan="4"/>
+        </Grid>
+    </Border>
+</Window>

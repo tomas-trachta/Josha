@@ -1,0 +1,87 @@
+<Window x:Class="Josha.Views.InternalViewer"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="View"
+        Width="900" Height="640"
+        WindowStartupLocation="CenterOwner"
+        Background="{StaticResource Brush.Surface}"
+        Foreground="{StaticResource Brush.OnSurface}"
+        FontFamily="{DynamicResource Font.Body}">
+    <Window.InputBindings>
+        <KeyBinding Key="Escape" Command="ApplicationCommands.Close"/>
+        <KeyBinding Key="F3"     Command="ApplicationCommands.Close"/>
+        <KeyBinding Key="H" Modifiers="Ctrl" Command="{Binding ToggleHexCommand, RelativeSource={RelativeSource AncestorType=Window}}"/>
+    </Window.InputBindings>
+    <Window.CommandBindings>
+        <CommandBinding Command="ApplicationCommands.Close" Executed="OnCloseCommand"/>
+    </Window.CommandBindings>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0"
+                Background="{StaticResource Brush.SurfaceMuted}"
+                BorderBrush="{StaticResource Brush.OutlineSubtle}"
+                BorderThickness="0,0,0,1"
+                Padding="12,6">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock x:Name="HeaderTitle"
+                           Grid.Column="0"
+                           FontWeight="SemiBold"
+                           VerticalAlignment="Center"
+                           TextTrimming="CharacterEllipsis"/>
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <TextBlock x:Name="HeaderModeLabel"
+                               Foreground="{StaticResource Brush.OnSurfaceMuted}"
+                               FontSize="11"
+                               VerticalAlignment="Center"
+                               Margin="0,0,8,0"/>
+                    <Button Content="Hex/Text  (Ctrl+H)"
+                            Click="OnToggleHexClick"
+                            Style="{StaticResource SecondaryButtonStyle}"
+                            Padding="10,3"
+                            FontSize="11"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <ScrollViewer Grid.Row="1"
+                      x:Name="ContentScroller"
+                      HorizontalScrollBarVisibility="Auto"
+                      VerticalScrollBarVisibility="Auto"
+                      Background="{StaticResource Brush.SurfaceSunken}">
+            <TextBox x:Name="ContentText"
+                     IsReadOnly="True"
+                     BorderThickness="0"
+                     Background="Transparent"
+                     Foreground="{StaticResource Brush.OnSurface}"
+                     FontFamily="Cascadia Mono, Consolas, Courier New"
+                     FontSize="12"
+                     Padding="12,8"
+                     TextWrapping="NoWrap"
+                     AcceptsReturn="True"
+                     PreviewMouseWheel="OnTextWheel"/>
+        </ScrollViewer>
+
+        <Border Grid.Row="2"
+                Background="{StaticResource Brush.SurfaceMuted}"
+                BorderBrush="{StaticResource Brush.OutlineSubtle}"
+                BorderThickness="0,1,0,0"
+                Padding="12,4">
+            <TextBlock x:Name="StatusText"
+                       Foreground="{StaticResource Brush.OnSurfaceMuted}"
+                       FontSize="11"/>
+        </Border>
+    </Grid>
+</Window>
