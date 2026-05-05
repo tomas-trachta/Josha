@@ -47,10 +47,15 @@ namespace Josha.Views
             UpdatePill();
         }
 
+        // Status transitions fire from worker threads (FileOperationQueue),
+        // so the handler runs off the dispatcher; UpdatePill touches WPF
+        // DependencyObjects and would otherwise throw, crashing the worker
+        // before the copy/move starts and leaving the job stuck at 0%.
         private void OnJobPropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
-            if (e.PropertyName == nameof(QueueJobViewModel.Status))
-                UpdatePill();
+            if (e.PropertyName != nameof(QueueJobViewModel.Status)) return;
+            if (Dispatcher.CheckAccess()) UpdatePill();
+            else Dispatcher.BeginInvoke(new Action(UpdatePill));
         }
 
         private void UpdatePill()

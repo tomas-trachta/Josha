@@ -11,7 +11,7 @@
          Concurrent collection keeps the UI thread responsive. -->
     <ServerGarbageCollection>true</ServerGarbageCollection>
     <ConcurrentGarbageCollection>true</ConcurrentGarbageCollection>
-    <Version>1.0.0</Version>
+    <Version>1.0.1</Version>
     <AssemblyTitle>Josha</AssemblyTitle>
     <Product>Josha</Product>
     <Company>Tomáš Trachta</Company>
