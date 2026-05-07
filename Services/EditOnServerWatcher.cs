@@ -82,6 +82,7 @@ namespace Josha.Services
                     watcher._editorProcess = Process.Start(new ProcessStartInfo
                     {
                         FileName = tempFile,
+                        WorkingDirectory = tempDir,
                         UseShellExecute = true,
                     });
                 }

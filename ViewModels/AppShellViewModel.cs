@@ -397,6 +397,7 @@ namespace Josha.ViewModels
                 {
                     FileName = editor,
                     Arguments = $"\"{row.FullPath}\"",
+                    WorkingDirectory = Path.GetDirectoryName(row.FullPath) ?? string.Empty,
                     UseShellExecute = true,
                 });
                 StatusText = $"Opened {row.Name} in editor";

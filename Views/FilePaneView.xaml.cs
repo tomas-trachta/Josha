@@ -117,9 +117,13 @@ namespace Josha.Views
 
             try
             {
+                // Match Explorer: set CWD to the file's folder so the launched
+                // process can resolve relative paths (configs, sibling DLLs)
+                // the same way it does when double-clicked from Explorer.
                 Process.Start(new ProcessStartInfo
                 {
                     FileName = row.FullPath,
+                    WorkingDirectory = Path.GetDirectoryName(row.FullPath) ?? string.Empty,
                     UseShellExecute = true,
                 });
             }
@@ -154,6 +158,7 @@ namespace Josha.Views
                 Process.Start(new ProcessStartInfo
                 {
                     FileName = tempPath,
+                    WorkingDirectory = Path.GetDirectoryName(tempPath) ?? string.Empty,
                     UseShellExecute = true,
                 });
             }

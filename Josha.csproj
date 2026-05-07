@@ -17,11 +17,19 @@
     <Company>Tomáš Trachta</Company>
     <Copyright>Copyright © Tomáš Trachta</Copyright>
     <ApplicationIcon>installer\Josha.ico</ApplicationIcon>
+    <!-- The test project lives under tests\ — exclude it from Josha's
+         default-item globs so its sources don't get pulled into the WPF
+         compile (and so the WPF wpftmp companion doesn't try to build them). -->
+    <DefaultItemExcludes>$(DefaultItemExcludes);tests\**</DefaultItemExcludes>
   </PropertyGroup>
 
   <ItemGroup>
     <Folder Include="ViewModels\" />
     <Folder Include="Views\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Josha.IntegrationTests" />
   </ItemGroup>
 
   <ItemGroup>
