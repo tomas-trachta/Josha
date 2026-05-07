@@ -122,7 +122,7 @@ namespace Josha.ViewModels
             LeftColumn = new PaneColumnViewModel(@"C:\");
             RightColumn = new PaneColumnViewModel(@"C:\");
             _activeColumn = LeftColumn;
-            if (LeftColumn.ActiveTab != null) LeftColumn.ActiveTab.IsActive = true;
+            SyncActiveStates();
 
             // The status-bar bindings depend on ActivePane, which depends on
             // ActiveColumn.ActiveTab — re-fire them whenever a tab changes.
@@ -356,9 +356,13 @@ namespace Josha.ViewModels
         private void OnColumnPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
             if (e.PropertyName != nameof(PaneColumnViewModel.ActiveTab)) return;
-            // Whichever column's tab changed, the ActivePane / InactivePane
-            // computed properties may now point elsewhere — re-fire so bindings
-            // (status bar, F-key CanExecute) refresh.
+            // Either column's ActiveTab moved (Ctrl+Tab, tab-bar click, close,
+            // add). Re-sync IsActive so the displayed tab in the active column
+            // gets the blue border and stale flags on no-longer-shown tabs are
+            // cleared — without this, two panes can both show "active" at once.
+            SyncActiveStates();
+            // ActivePane / InactivePane may now point elsewhere — re-fire so
+            // bindings (status bar, F-key CanExecute) refresh.
             OnPropertyChanged(nameof(ActivePane));
             OnPropertyChanged(nameof(InactivePane));
             CommandManager.InvalidateRequerySuggested();
@@ -652,14 +656,22 @@ namespace Josha.ViewModels
         public void SetActiveColumn(PaneColumnViewModel column)
         {
             if (column == null) return;
-
-            // Clear IsActive on every tab in both columns; set true only on the
-            // newly-active column's active tab. F-key targeting reads IsActive.
-            foreach (var t in LeftColumn.Tabs) t.IsActive = false;
-            foreach (var t in RightColumn.Tabs) t.IsActive = false;
-            if (column.ActiveTab != null) column.ActiveTab.IsActive = true;
-
             ActiveColumn = column;
+            SyncActiveStates();
+        }
+
+        // Single source of truth for IsActive: exactly one tab in the entire
+        // app — the active column's ActiveTab — has IsActive=true; every other
+        // tab is false. F-key targeting and the pane's blue border both read
+        // this flag, so it must stay consistent with the displayed tab in the
+        // active column. Called from every code path that can change either
+        // ActiveColumn or a column's ActiveTab (Ctrl+Tab, tab-bar click, close
+        // tab, add tab, programmatic navigation), so the invariant can't drift.
+        private void SyncActiveStates()
+        {
+            var active = _activeColumn?.ActiveTab;
+            foreach (var t in LeftColumn.Tabs)  t.IsActive = ReferenceEquals(t, active);
+            foreach (var t in RightColumn.Tabs) t.IsActive = ReferenceEquals(t, active);
         }
 
         private Task CopySelectedAsync() => EnqueueBatchAsync(FileOperationKind.Copy);

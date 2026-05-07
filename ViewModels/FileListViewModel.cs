@@ -21,6 +21,9 @@ namespace Josha.ViewModels
         private bool _sortAscending = true;
         private Predicate<object>? _filterPredicate;
         private CancellationTokenSource? _refreshCts;
+        private IFileSystemProvider _fileSystem = LocalFileSystemProvider.Instance;
+        private FileSystemWatcher? _watcher;
+        private CancellationTokenSource? _watcherDebounceCts;
 
         public ObservableCollection<FileRowViewModel> Rows { get; } = new();
         public ICollectionView RowsView { get; }
@@ -30,7 +33,17 @@ namespace Josha.ViewModels
 
         // Active filesystem provider. Defaults to local; remote tabs swap in
         // their RemoteFileSystemProvider so enumeration goes over the wire.
-        public IFileSystemProvider FileSystem { get; set; } = LocalFileSystemProvider.Instance;
+        public IFileSystemProvider FileSystem
+        {
+            get => _fileSystem;
+            set
+            {
+                if (ReferenceEquals(_fileSystem, value)) return;
+                _fileSystem = value;
+                OnPropertyChanged();
+                RestartWatcher();
+            }
+        }
 
         public string CurrentPath
         {
@@ -40,6 +53,7 @@ namespace Josha.ViewModels
                 if (_currentPath == value) return;
                 _currentPath = value;
                 OnPropertyChanged();
+                RestartWatcher();
             }
         }
 
@@ -288,6 +302,99 @@ namespace Josha.ViewModels
                            row.Name.Contains(text, StringComparison.OrdinalIgnoreCase);
                 };
             }
+        }
+
+        // Watch the active local directory for external mutations (a file
+        // dropped via Explorer, a build output appearing, a download finishing,
+        // a sibling app saving over a file). Refresh shortly after so the pane
+        // never lags behind reality. Remote providers are skipped — FTP/SFTP
+        // have no equivalent push notification.
+        private void RestartWatcher()
+        {
+            StopWatcher();
+
+            if (_fileSystem.IsRemote) return;
+            var path = _currentPath;
+            if (string.IsNullOrEmpty(path)) return;
+
+            try
+            {
+                if (!Directory.Exists(path)) return;
+
+                var w = new FileSystemWatcher(path)
+                {
+                    NotifyFilter = NotifyFilters.FileName
+                                 | NotifyFilters.DirectoryName
+                                 | NotifyFilters.LastWrite
+                                 | NotifyFilters.Size
+                                 | NotifyFilters.Attributes,
+                    IncludeSubdirectories = false,
+                    EnableRaisingEvents = true,
+                };
+                w.Created += OnDirEvent;
+                w.Deleted += OnDirEvent;
+                w.Renamed += OnDirEvent;
+                w.Changed += OnDirEvent;
+                w.Error   += OnDirError;
+                _watcher = w;
+            }
+            catch (Exception ex)
+            {
+                Log.Warn("FileList", $"Could not start directory watcher for {path}", ex);
+            }
+        }
+
+        private void StopWatcher()
+        {
+            _watcherDebounceCts?.Cancel();
+            _watcherDebounceCts = null;
+
+            var w = _watcher;
+            _watcher = null;
+            if (w == null) return;
+
+            try
+            {
+                w.EnableRaisingEvents = false;
+                w.Created -= OnDirEvent;
+                w.Deleted -= OnDirEvent;
+                w.Renamed -= OnDirEvent;
+                w.Changed -= OnDirEvent;
+                w.Error   -= OnDirError;
+                w.Dispose();
+            }
+            catch { }
+        }
+
+        private void OnDirEvent(object sender, FileSystemEventArgs e) => ScheduleAutoRefresh();
+
+        // Buffer overflow or directory-vanished. Either way, force a re-read so
+        // the list reflects the new state (or surfaces an empty/error view).
+        private void OnDirError(object sender, ErrorEventArgs e) => ScheduleAutoRefresh();
+
+        // 400ms debounce: a paste or extract can fire dozens of events; only
+        // the final list state matters. Matches EditOnServerWatcher's choice.
+        private void ScheduleAutoRefresh()
+        {
+            _watcherDebounceCts?.Cancel();
+            _watcherDebounceCts = new CancellationTokenSource();
+            var token = _watcherDebounceCts.Token;
+            var watcherSnapshot = _watcher;
+
+            _ = Task.Delay(TimeSpan.FromMilliseconds(400), token).ContinueWith(t =>
+            {
+                if (t.IsCanceled) return;
+                var dispatcher = System.Windows.Application.Current?.Dispatcher;
+                if (dispatcher == null) return;
+                dispatcher.BeginInvoke(new Action(async () =>
+                {
+                    // Path or provider changed between scheduling and firing —
+                    // the new owner already refreshed, skip.
+                    if (!ReferenceEquals(_watcher, watcherSnapshot)) return;
+                    try { await RefreshAsync(); }
+                    catch (Exception ex) { Log.Warn("FileList", "Auto-refresh failed", ex); }
+                }));
+            }, TaskScheduler.Default);
         }
 
         public void StartRename(FileRowViewModel row)
