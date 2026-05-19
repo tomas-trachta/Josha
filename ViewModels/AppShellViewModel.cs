@@ -462,27 +462,34 @@ namespace Josha.ViewModels
             }
             catch (Exception ex) { AppServices.Toast.Error($"Bad pattern: {ex.Message}"); return; }
 
+            // Route through the view so the native ListView.SelectedItems is
+            // updated for virtualized rows too. Toggling row.IsSelected only
+            // reaches realized containers via the TwoWay style binding.
             int touched = 0;
-            foreach (var row in ActivePane.List.Rows)
+            var apply = ActivePane.List.ProgrammaticSelectionRequested;
+            if (apply == null) return;
+            apply((row, isSelected) =>
             {
-                if (row.IsParentLink) continue;
-                if (!rx.IsMatch(row.Name)) continue;
-                if (select && !row.IsSelected) { row.IsSelected = true; touched++; }
-                else if (!select && row.IsSelected) { row.IsSelected = false; touched++; }
-            }
+                if (!rx.IsMatch(row.Name)) return isSelected;
+                if (select && !isSelected) { touched++; return true; }
+                if (!select && isSelected) { touched++; return false; }
+                return isSelected;
+            });
             StatusText = (select ? "Selected " : "Deselected ") + $"{touched} item{(touched == 1 ? "" : "s")} matching '{pattern}'";
         }
 
         private void InvertSelection()
         {
             if (ActivePane == null) return;
+            var apply = ActivePane.List.ProgrammaticSelectionRequested;
+            if (apply == null) return;
+
             int n = 0;
-            foreach (var row in ActivePane.List.Rows)
+            apply((_, isSelected) =>
             {
-                if (row.IsParentLink) continue;
-                row.IsSelected = !row.IsSelected;
                 n++;
-            }
+                return !isSelected;
+            });
             StatusText = $"Inverted selection on {n} items";
         }
 

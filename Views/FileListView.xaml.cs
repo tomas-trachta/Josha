@@ -25,6 +25,47 @@ namespace Josha.Views
             // resizes; MainList's own SizeChanged was unreliable on first show.
             SizeChanged += (_, _) => StretchNameColumn();
             Loaded += OnLoaded;
+            DataContextChanged += OnDataContextChanged;
+        }
+
+        private FileListViewModel? _wiredVm;
+
+        private void OnDataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
+        {
+            if (_wiredVm != null)
+                _wiredVm.ProgrammaticSelectionRequested = null;
+
+            if (DataContext is FileListViewModel vm)
+            {
+                vm.ProgrammaticSelectionRequested = ApplyProgrammaticSelection;
+                _wiredVm = vm;
+            }
+            else
+            {
+                _wiredVm = null;
+            }
+        }
+
+        // Drives invert / pattern selection by mutating the ListView's native
+        // SelectedItems. Going through row.IsSelected silently skips virtualized
+        // rows; manipulating SelectedItems updates the real selection state and
+        // lets OnSelectionChanged propagate the result back into the VM.
+        private void ApplyProgrammaticSelection(Func<FileRowViewModel, bool, bool> selector)
+        {
+            if (DataContext is not FileListViewModel vm) return;
+
+            foreach (var row in vm.Rows)
+            {
+                if (row.IsParentLink) continue;
+
+                bool isSelected = MainList.SelectedItems.Contains(row);
+                bool shouldSelect = selector(row, isSelected);
+
+                if (shouldSelect && !isSelected)
+                    MainList.SelectedItems.Add(row);
+                else if (!shouldSelect && isSelected)
+                    MainList.SelectedItems.Remove(row);
+            }
         }
 
         private bool _columnHooksAttached;
@@ -242,28 +283,96 @@ namespace Josha.Views
             if (DataContext is not FileListViewModel vm) return;
 
             var src = e.OriginalSource as DependencyObject;
-            var container = ItemsControl.ContainerFromElement(MainList, src) as ListViewItem;
-            if (container?.Content is not FileRowViewModel hit) return;
 
-            // Right-click on a non-selected row replaces selection (Explorer).
-            if (!hit.IsSelected)
+            // Right-click on the column header: leave it for the header's own
+            // handling (no shell menu, no directory menu).
+            if (FindAncestor<System.Windows.Controls.GridViewColumnHeader>(src) != null) return;
+
+            var container = ItemsControl.ContainerFromElement(MainList, src) as ListViewItem;
+            if (container?.Content is FileRowViewModel hit)
             {
-                foreach (var row in vm.SelectedRows.ToList())
-                    row.IsSelected = false;
-                hit.IsSelected = true;
+                // Right-click on a non-selected row replaces selection (Explorer).
+                if (!hit.IsSelected)
+                {
+                    foreach (var row in vm.SelectedRows.ToList())
+                        row.IsSelected = false;
+                    hit.IsSelected = true;
+                }
+
+                var paths = vm.SelectedRows
+                    .Where(r => !r.IsParentLink)
+                    .Select(r => r.FullPath)
+                    .ToList();
+                if (paths.Count == 0) paths = new List<string> { hit.FullPath };
+
+                var hwnd = (PresentationSource.FromVisual(this) as HwndSource)?.Handle ?? IntPtr.Zero;
+                var screen = MainList.PointToScreen(e.GetPosition(MainList));
+                ShellContextMenuComponent.Show(paths, hwnd, (int)screen.X, (int)screen.Y);
+                e.Handled = true;
+                return;
             }
 
-            var paths = vm.SelectedRows
-                .Where(r => !r.IsParentLink)
-                .Select(r => r.FullPath)
-                .ToList();
-            if (paths.Count == 0) paths = new List<string> { hit.FullPath };
-
-            var hwnd = (PresentationSource.FromVisual(this) as HwndSource)?.Handle ?? IntPtr.Zero;
-            var screen = MainList.PointToScreen(e.GetPosition(MainList));
-            ShellContextMenuComponent.Show(paths, hwnd, (int)screen.X, (int)screen.Y);
+            // Empty space inside the list — show the directory action menu.
+            ShowDirectoryContextMenu(vm);
             e.Handled = true;
         }
+
+        private void ShowDirectoryContextMenu(FileListViewModel vm)
+        {
+            var shell = Window.GetWindow(this)?.DataContext as AppShellViewModel;
+            if (shell == null) return;
+
+            var menu = new ContextMenu
+            {
+                PlacementTarget = MainList,
+                Placement = System.Windows.Controls.Primitives.PlacementMode.MousePoint,
+            };
+
+            AddMenuCommand(menu, "_New folder",         "F7",     shell.MkdirCommand);
+            AddMenuCommand(menu, "New _file",           null,     shell.NewFileCommand);
+            AddMenuCommand(menu, "_Paste",              "Ctrl+V", shell.PasteCommand);
+            menu.Items.Add(new Separator());
+            AddMenuCommand(menu, "_Refresh",            null,     shell.RefreshActiveCommand);
+            AddMenuCommand(menu, "_Select by pattern…", "+",      shell.SelectByPatternCommand);
+            AddMenuCommand(menu, "_Invert selection",   "*",      shell.InvertSelectionCommand);
+
+            // "Open in Explorer" only makes sense for local paths; remote
+            // panes have no shell-resolvable location.
+            if (!vm.FileSystem.IsRemote && !string.IsNullOrEmpty(vm.CurrentPath))
+            {
+                menu.Items.Add(new Separator());
+                var open = new MenuItem { Header = "Open in E_xplorer" };
+                var dir = vm.CurrentPath;
+                open.Click += (_, _) =>
+                {
+                    try { Process.Start(new ProcessStartInfo("explorer.exe", $"\"{dir}\"") { UseShellExecute = true }); }
+                    catch (Exception ex) { Log.Warn("FileList", "Open in Explorer failed", ex); }
+                };
+                menu.Items.Add(open);
+            }
+
+            menu.IsOpen = true;
+        }
+
+        private static void AddMenuCommand(ContextMenu menu, string header, string? gesture, ICommand command)
+        {
+            menu.Items.Add(new MenuItem
+            {
+                Header = header,
+                Command = command,
+                InputGestureText = gesture ?? string.Empty,
+            });
+        }
+
+        private static T? FindAncestor<T>(DependencyObject? start) where T : DependencyObject
+        {
+            for (var node = start; node != null; node = System.Windows.Media.VisualTreeHelper.GetParent(node) ?? LogicalTreeParent(node))
+                if (node is T t) return t;
+            return null;
+        }
+
+        private static DependencyObject? LogicalTreeParent(DependencyObject node) =>
+            node is FrameworkElement fe ? fe.Parent : null;
 
         private Point? _dragStart;
 
@@ -324,13 +433,26 @@ namespace Josha.Views
         {
             if (DataContext is not FileListViewModel vm) return;
 
+            // Mirror both vm.SelectedRows AND row.IsSelected from the native
+            // selection. The TwoWay IsSelected style binding only fires for
+            // realized containers, so a shift+click that spans virtualized
+            // rows would otherwise leave row.IsSelected stale — when the user
+            // later scrolls those rows into view, the stale source (false)
+            // can override the visually-selected container.
             foreach (var removed in e.RemovedItems)
                 if (removed is FileRowViewModel r)
+                {
+                    r.IsSelected = false;
                     vm.SelectedRows.Remove(r);
+                }
 
             foreach (var added in e.AddedItems)
-                if (added is FileRowViewModel r && !r.IsParentLink && !vm.SelectedRows.Contains(r))
-                    vm.SelectedRows.Add(r);
+                if (added is FileRowViewModel r && !r.IsParentLink)
+                {
+                    r.IsSelected = true;
+                    if (!vm.SelectedRows.Contains(r))
+                        vm.SelectedRows.Add(r);
+                }
         }
 
     }

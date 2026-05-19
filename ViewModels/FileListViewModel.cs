@@ -31,6 +31,13 @@ namespace Josha.ViewModels
         // Kept in sync by FileListView with the ListView's native SelectedItems.
         public ObservableCollection<FileRowViewModel> SelectedRows { get; } = new();
 
+        // The view registers a handler so programmatic selection (invert /
+        // pattern) can mutate ListView.SelectedItems directly. Poking
+        // row.IsSelected only works for realized containers; virtualized rows
+        // would be silently skipped without this. The callback receives the
+        // row and its current native-selection state and returns the new one.
+        internal Action<Func<FileRowViewModel, bool, bool>>? ProgrammaticSelectionRequested;
+
         // Active filesystem provider. Defaults to local; remote tabs swap in
         // their RemoteFileSystemProvider so enumeration goes over the wire.
         public IFileSystemProvider FileSystem
