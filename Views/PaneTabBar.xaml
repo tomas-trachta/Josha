@@ -69,45 +69,53 @@
                     <DataTemplate DataType="{x:Type vm:FilePaneViewModel}">
                         <Border Tag="{Binding}"
                                 MouseLeftButtonDown="OnTabClick"
-                                MouseRightButtonDown="OnTabRightClick">
+                                MouseRightButtonDown="OnTabRightClick"
+                                BorderBrush="{Binding IsActive, Converter={StaticResource ActiveToBorderBrush}}">
                             <Border.Style>
                                 <Style TargetType="Border" BasedOn="{StaticResource TabChipStyle}">
                                     <Style.Triggers>
-                                        <!-- IsCurrentInColumn is true for the displayed tab in
-                                             *each* column; IsActive is true only for the
-                                             focused pane's tab. Trigger order matters — the
-                                             IsActive setter intentionally wins so the inactive
-                                             column's current tab keeps a muted border. -->
+                                        <!-- Background tracks "shown in this column" (true on each
+                                             column's current tab). The accent BorderBrush is bound
+                                             directly above so it follows IsActive without relying
+                                             on WPF trigger-revert (chained DataTriggers in
+                                             BasedOn styles don't always restore the original
+                                             BorderBrush — that's the bug this fixes). -->
                                         <DataTrigger Binding="{Binding IsCurrentInColumn}" Value="True">
                                             <Setter Property="Background" Value="{StaticResource Brush.Surface}"/>
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding IsActive}" Value="True">
-                                            <Setter Property="Background" Value="{StaticResource Brush.Surface}"/>
-                                            <Setter Property="BorderBrush" Value="{StaticResource Brush.Accent}"/>
                                         </DataTrigger>
                                     </Style.Triggers>
                                 </Style>
                             </Border.Style>
                             <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                <TextBlock Grid.Column="0"
-                                           Text="{Binding TabTitle}"
-                                           Foreground="{StaticResource Brush.OnSurface}"
-                                           FontSize="12"
-                                           VerticalAlignment="Center"
-                                           TextTrimming="CharacterEllipsis"
-                                           Padding="10,4,4,4"
-                                           ToolTip="{Binding CurrentPath}"/>
-                                <Button Grid.Column="1"
-                                        Content="&#xE10A;"
-                                        Tag="{Binding}"
-                                        Click="OnCloseClick"
-                                        Style="{StaticResource CloseTabButtonStyle}"
-                                        Margin="2,0,4,0"
-                                        ToolTip="Close tab"/>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="2"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+                                <!-- Top accent strip: redundant cue alongside the border so the
+                                     focused pane is unambiguous even at small scale. -->
+                                <Border Grid.Row="0"
+                                        Background="{Binding IsActive, Converter={StaticResource ActiveToAccentStrip}}"/>
+                                <Grid Grid.Row="1">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0"
+                                               Text="{Binding TabTitle}"
+                                               Foreground="{StaticResource Brush.OnSurface}"
+                                               FontSize="12"
+                                               VerticalAlignment="Center"
+                                               TextTrimming="CharacterEllipsis"
+                                               Padding="10,4,4,4"
+                                               ToolTip="{Binding CurrentPath}"/>
+                                    <Button Grid.Column="1"
+                                            Content="&#xE10A;"
+                                            Tag="{Binding}"
+                                            Click="OnCloseClick"
+                                            Style="{StaticResource CloseTabButtonStyle}"
+                                            Margin="2,0,4,0"
+                                            ToolTip="Close tab"/>
+                                </Grid>
                             </Grid>
                         </Border>
                     </DataTemplate>

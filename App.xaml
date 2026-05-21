@@ -13,6 +13,8 @@
             <conv:StringNotEmptyToVisibilityConverter x:Key="StrNotEmptyToVis"/>
             <conv:InverseBoolToVisibilityConverter x:Key="InvBoolToVis"/>
             <conv:ResourceKeyToBrushConverter x:Key="ResKeyToBrush"/>
+            <conv:ActiveToBorderBrushConverter x:Key="ActiveToBorderBrush"/>
+            <conv:ActiveToAccentStripConverter x:Key="ActiveToAccentStrip"/>
 
             <!-- Segoe UI Variable preferred (Win 11); Segoe UI fallback (Win 10). -->
             <FontFamily x:Key="Font.Display">Segoe UI Variable Display, Segoe UI</FontFamily>
