@@ -146,7 +146,7 @@
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
-                    <views:PaneTabBar Grid.Row="0" DataContext="{Binding LeftColumn}"/>
+                    <views:PaneTabBar x:Name="LeftTabBar" Grid.Row="0" DataContext="{Binding LeftColumn}"/>
                     <views:FilePaneView x:Name="LeftPane" Grid.Row="1"
                                         DataContext="{Binding LeftColumn.ActiveTab}"/>
                 </Grid>
@@ -161,7 +161,7 @@
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
-                    <views:PaneTabBar Grid.Row="0" DataContext="{Binding RightColumn}"/>
+                    <views:PaneTabBar x:Name="RightTabBar" Grid.Row="0" DataContext="{Binding RightColumn}"/>
                     <views:FilePaneView x:Name="RightPane" Grid.Row="1"
                                         DataContext="{Binding RightColumn.ActiveTab}"/>
                 </Grid>

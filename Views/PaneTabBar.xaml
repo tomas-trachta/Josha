@@ -73,7 +73,15 @@
                             <Border.Style>
                                 <Style TargetType="Border" BasedOn="{StaticResource TabChipStyle}">
                                     <Style.Triggers>
+                                        <!-- IsCurrentInColumn is true for the displayed tab in
+                                             *each* column; IsActive is true only for the
+                                             focused pane's tab. Trigger order matters — the
+                                             IsActive setter intentionally wins so the inactive
+                                             column's current tab keeps a muted border. -->
                                         <DataTrigger Binding="{Binding IsCurrentInColumn}" Value="True">
+                                            <Setter Property="Background" Value="{StaticResource Brush.Surface}"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding IsActive}" Value="True">
                                             <Setter Property="Background" Value="{StaticResource Brush.Surface}"/>
                                             <Setter Property="BorderBrush" Value="{StaticResource Brush.Accent}"/>
                                         </DataTrigger>

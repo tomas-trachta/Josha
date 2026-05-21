@@ -23,6 +23,14 @@ namespace Josha
             LeftPane.Activated += vm => _shell.SetActive(vm);
             RightPane.Activated += vm => _shell.SetActive(vm);
 
+            // Clicking a tab in the inactive column must promote that column to
+            // active — without this, the right column's tab updates its
+            // ActiveTab while AppShell.ActiveColumn stays on the left, leaving
+            // F-key targeting and the active-border highlight desynced from
+            // what the user just clicked.
+            LeftTabBar.TabActivated  += vm => { _shell.SetActive(vm); FocusActivePaneListBoth(); };
+            RightTabBar.TabActivated += vm => { _shell.SetActive(vm); FocusActivePaneListBoth(); };
+
             _shell.BookmarksPickerRequested += () =>
             {
                 var dlg = new BookmarksDialog(_shell) { Owner = this };

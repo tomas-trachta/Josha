@@ -7,6 +7,12 @@ namespace Josha.Views
 {
     public partial class PaneTabBar : UserControl
     {
+        // Setting col.ActiveTab here would only switch the tab within this
+        // column; the app's ActiveColumn wouldn't move. The shell owns the
+        // combined "set ActiveTab + set ActiveColumn" transition, so we bubble
+        // the click up and let MainWindow route it through SetActive.
+        internal event Action<FilePaneViewModel>? TabActivated;
+
         public PaneTabBar()
         {
             InitializeComponent();
@@ -16,9 +22,8 @@ namespace Josha.Views
         {
             if (sender is not FrameworkElement fe) return;
             if (fe.Tag is not FilePaneViewModel tab) return;
-            if (DataContext is not PaneColumnViewModel col) return;
 
-            col.ActiveTab = tab;
+            TabActivated?.Invoke(tab);
             e.Handled = true;
         }
 
