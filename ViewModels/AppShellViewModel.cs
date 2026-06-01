@@ -86,6 +86,8 @@ namespace Josha.ViewModels
         public ICommand NextTabCommand { get; }
         public ICommand PrevTabCommand { get; }
         public ICommand PasteCommand { get; }
+        public ICommand ClipboardCopyCommand { get; }
+        public ICommand ClipboardCutCommand { get; }
         public ICommand AddBookmarkCommand { get; }
         public ICommand OpenBookmarksCommand { get; }
         public ICommand RemoveBookmarkCommand { get; }
@@ -164,6 +166,8 @@ namespace Josha.ViewModels
             PrevTabCommand           = new RelayCommand(_ => _activeColumn.PrevTabCommand.Execute(null), _ => _activeColumn.Tabs.Count > 1);
 
             PasteCommand             = new RelayCommand(_ => _ = PasteFromClipboardAsync(), _ => CanPasteFromClipboard());
+            ClipboardCopyCommand     = new RelayCommand(_ => CopyFilesToClipboard(cut: false), _ => CanCopyFilesToClipboard());
+            ClipboardCutCommand      = new RelayCommand(_ => CopyFilesToClipboard(cut: true),  _ => CanCopyFilesToClipboard());
 
             AddBookmarkCommand       = new RelayCommand(_ => AddBookmarkForActivePane(),  _ => ActivePane != null && !string.IsNullOrEmpty(ActivePane.CurrentPath));
             OpenBookmarksCommand     = new RelayCommand(_ => BookmarksPickerRequested?.Invoke());
@@ -262,6 +266,48 @@ namespace Josha.ViewModels
             if (ActivePane == null) return false;
             try { return Clipboard.ContainsFileDropList(); }
             catch { return false; }
+        }
+
+        private bool CanCopyFilesToClipboard()
+        {
+            if (ActivePane == null || ActivePane.IsRemote) return false;
+            return HasAnySelection();
+        }
+
+        // Writes the active pane's selection to the shell clipboard in the same
+        // CF_HDROP + "Preferred DropEffect" format Explorer uses, so Ctrl+V here
+        // (PasteFromClipboardAsync) and a paste into Explorer both work.
+        private void CopyFilesToClipboard(bool cut)
+        {
+            if (ActivePane == null || ActivePane.IsRemote) return;
+            var selection = SnapshotSelection();
+            if (selection.Count == 0) return;
+
+            var paths = new System.Collections.Specialized.StringCollection();
+            foreach (var r in selection) paths.Add(r.FullPath);
+
+            var data = new DataObject();
+            data.SetFileDropList(paths);
+
+            // 4-byte little-endian DROPEFFECT. The paste-side detector treats
+            // bit 0x02 set + bit 0x01 clear as cut; 0x05 (COPY|LINK) is the
+            // value Explorer writes for copy and reads as not-cut.
+            byte dropEffect = cut ? (byte)0x02 : (byte)0x05;
+            data.SetData("Preferred DropEffect",
+                new MemoryStream(new byte[] { dropEffect, 0, 0, 0 }));
+
+            try { Clipboard.SetDataObject(data, copy: true); }
+            catch (Exception ex)
+            {
+                Log.Warn("Shell", "Clipboard write failed", ex);
+                AppServices.Toast.Error("Couldn't write to clipboard");
+                return;
+            }
+
+            var verb = cut ? "Cut" : "Copied";
+            var brief = $"{verb} {selection.Count} item{(selection.Count == 1 ? "" : "s")} to clipboard";
+            StatusText = brief;
+            AppServices.Toast.Success(brief);
         }
 
         private async Task PasteFromClipboardAsync()
@@ -546,6 +592,9 @@ namespace Josha.ViewModels
 
             AddCmd("Copy",                 CopyCommand,                "F5");
             AddCmd("Move",                 MoveCommand,                "F6");
+            AddCmd("Copy to clipboard",    ClipboardCopyCommand,       "Ctrl+C");
+            AddCmd("Cut to clipboard",     ClipboardCutCommand,        "Ctrl+X");
+            AddCmd("Paste from clipboard", PasteCommand,               "Ctrl+V");
             AddCmd("New folder",           MkdirCommand,               "F7");
             AddCmd("New file",             NewFileCommand,             "Shift+F4");
             AddCmd("Rename",               RenameCommand,              "F2");

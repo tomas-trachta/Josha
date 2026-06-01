@@ -330,6 +330,8 @@ namespace Josha.Views
 
             AddMenuCommand(menu, "_New folder",         "F7",     shell.MkdirCommand);
             AddMenuCommand(menu, "New _file",           null,     shell.NewFileCommand);
+            AddMenuCommand(menu, "Cop_y",               "Ctrl+C", shell.ClipboardCopyCommand);
+            AddMenuCommand(menu, "Cu_t",                "Ctrl+X", shell.ClipboardCutCommand);
             AddMenuCommand(menu, "_Paste",              "Ctrl+V", shell.PasteCommand);
             menu.Items.Add(new Separator());
             AddMenuCommand(menu, "_Refresh",            null,     shell.RefreshActiveCommand);

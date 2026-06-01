@@ -246,6 +246,23 @@ namespace Josha
                 return;
             }
 
+            // Ctrl+C / Ctrl+X put the active pane's selection on the shell
+            // clipboard (CF_HDROP + "Preferred DropEffect"), so Ctrl+V pastes
+            // into the other pane — or into Explorer. TextBox keeps native text
+            // copy/cut. Ctrl+Shift+C and Ctrl+Alt+C are handled by window
+            // KeyBindings (CopyPath / CopyName) and don't reach here.
+            if ((e.Key == Key.C || e.Key == Key.X) && Keyboard.Modifiers == ModifierKeys.Control)
+            {
+                if (Keyboard.FocusedElement is TextBox) return;
+                var cmd = e.Key == Key.X ? _shell.ClipboardCutCommand : _shell.ClipboardCopyCommand;
+                if (cmd.CanExecute(null))
+                {
+                    cmd.Execute(null);
+                    e.Handled = true;
+                }
+                return;
+            }
+
             // Ctrl+Tab cycles tabs in the active column. Handled here (not as a
             // window KeyBinding) because WPF's KeyboardNavigation consumes Tab
             // before InputBindings get a look.
