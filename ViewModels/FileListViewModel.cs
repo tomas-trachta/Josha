@@ -3,6 +3,7 @@ using Josha.Services;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
+using System.Linq;
 using System.Text.RegularExpressions;
 using System.Windows.Data;
 
@@ -180,6 +181,18 @@ namespace Josha.ViewModels
             }
 
             if (token.IsCancellationRequested) { IsLoading = false; return; }
+
+            // A watcher-triggered refresh can land while the user is mid-rename
+            // (e.g. right after creating a new folder). Rebuilding Rows always
+            // swaps in fresh row instances, which regenerates every container
+            // and drops keyboard focus out of the rename TextBox even if we
+            // reapply IsEditing afterwards. Bail out entirely and let the
+            // refresh that follows rename commit/cancel catch up instead.
+            if (Rows.Any(r => r.IsEditing))
+            {
+                IsLoading = false;
+                return;
+            }
 
             Rows.Clear();
             foreach (var r in newRows)

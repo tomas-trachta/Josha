@@ -866,6 +866,24 @@ namespace Josha.ViewModels
             }
 
             await ActivePane.List.RefreshAsync();
+
+            // Background priority lets the refresh-induced layout pass realise
+            // the new row's container before IsEditing flips — otherwise the
+            // rename TextBox isn't in the tree for IsVisibleChanged to fire on.
+            var capturedName = name;
+            var capturedPane = ActivePane;
+            _ = System.Windows.Application.Current.Dispatcher.BeginInvoke(new Action(() =>
+            {
+                var freshRow = capturedPane.List.Rows
+                    .FirstOrDefault(r => string.Equals(r.Name, capturedName, StringComparison.Ordinal));
+                if (freshRow == null) return;
+
+                foreach (var s in capturedPane.List.SelectedRows.ToList())
+                    s.IsSelected = false;
+                freshRow.IsSelected = true;
+                capturedPane.List.StartRename(freshRow);
+            }), System.Windows.Threading.DispatcherPriority.Background);
+
             StatusText = $"Created '{name}'";
             AppServices.Toast.Success($"Created folder '{name}'");
         }

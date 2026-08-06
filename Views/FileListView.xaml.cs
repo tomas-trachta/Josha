@@ -278,6 +278,18 @@ namespace Josha.Views
             }
         }
 
+        // Fires both when the user clicks away and when Enter/Escape already
+        // hid the TextBox (Visibility flips to Collapsed on IsEditing=false).
+        // CancelRename is idempotent, so the latter case is a harmless no-op.
+        private void OnRenameEditorLostFocus(object sender, RoutedEventArgs e)
+        {
+            if (sender is not TextBox tb) return;
+            if (tb.DataContext is not FileRowViewModel row) return;
+            if (DataContext is not FileListViewModel vm) return;
+
+            vm.CancelRename(row);
+        }
+
         private void OnListPreviewMouseRightButtonUp(object sender, MouseButtonEventArgs e)
         {
             if (DataContext is not FileListViewModel vm) return;
@@ -390,6 +402,15 @@ namespace Josha.Views
                 _dragStart = e.GetPosition(null);
             else
                 _dragStart = null;
+
+            // Clicking the empty area below/beside the rows doesn't move
+            // keyboard focus off the rename TextBox (nothing focusable is
+            // there to take it), so LostFocus never fires. Cancel explicitly.
+            if (container == null && DataContext is FileListViewModel vm)
+            {
+                var editing = vm.Rows.FirstOrDefault(r => r.IsEditing);
+                if (editing != null) vm.CancelRename(editing);
+            }
         }
 
         private void OnListPreviewMouseUp(object sender, MouseButtonEventArgs e)

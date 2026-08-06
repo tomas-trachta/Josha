@@ -156,6 +156,7 @@
                                              MinHeight="24"
                                              Padding="4,0"
                                              KeyDown="OnRenameEditorKeyDown"
+                                             LostFocus="OnRenameEditorLostFocus"
                                              IsVisibleChanged="OnRenameEditorVisibleChanged"/>
                                 </Grid>
                             </DataTemplate>

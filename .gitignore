@@ -135,3 +135,6 @@ $RECYCLE.BIN/
 .DS_Store
 
 _NCrunch*
+# Machine-local editor / tooling files.
+*.sublime-*
+compile_commands.json
