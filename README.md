@@ -2,7 +2,7 @@
 
 A dual-pane keyboard-driven file manager for Windows. Total Commander muscle memory, modern WinUI-flavoured UI, integrated FTP/SFTP, and a built-in disk-usage tree view. Local and remote tabs share the same F5/F6 workflow — copy a file from your project to a server with the same keystrokes you use to copy it across folders.
 
-> **Status:** active personal development. Windows-only. .NET 9 / WPF.
+> **Status:** active personal development. Windows-only. .NET 10 / WPF.
 
 ![Josha — dual-pane file manager](preview.png)
 
@@ -29,7 +29,7 @@ A dual-pane keyboard-driven file manager for Windows. Total Commander muscle mem
 ## Requirements
 
 - Windows 10 1809+ or Windows 11.
-- [.NET 9 SDK](https://dotnet.microsoft.com/download/dotnet/9.0).
+- [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0).
 - Optional: an external editor (VS Code, Notepad++, etc.) configured in Settings for F4 edit-on-server.
 
 ---
@@ -153,7 +153,7 @@ For a deeper architectural map see [`CLAUDE.md`](./CLAUDE.md).
 
 ## Tech stack
 
-- **.NET 9** (`net9.0-windows`), WPF.
+- **.NET 10** (`net10.0-windows`), WPF.
 - **[FluentFTP](https://github.com/robinrodricks/FluentFTP)** — FTP / FTPS client.
 - **[SSH.NET](https://github.com/sshnet/SSH.NET)** — SFTP client.
 - **[MahApps.Metro.IconPacks.Material](https://github.com/MahApps/MahApps.Metro.IconPacks)** — Material Design icons.

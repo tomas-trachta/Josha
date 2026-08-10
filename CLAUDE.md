@@ -9,7 +9,7 @@ dotnet build Josha.sln
 dotnet run --project Josha.csproj
 ```
 
-Target framework: .NET 9 (`net9.0-windows`), WPF desktop application. ServerGC + ConcurrentGC enabled for the parallel disk scanner. No test project.
+Target framework: .NET 10 (`net10.0-windows`), WPF desktop application. ServerGC + ConcurrentGC enabled for the parallel disk scanner. No test project.
 
 NuGet dependencies:
 - **FluentFTP** — FTP / FTPS (explicit AUTH TLS, implicit on 990), passive/active, fingerprint pinning.
