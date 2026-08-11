@@ -136,12 +136,22 @@
 
             <Grid Grid.Row="1">
                 <Grid.ColumnDefinitions>
+                    <ColumnDefinition x:Name="SidebarColumn" Width="220" MinWidth="160" MaxWidth="420"/>
+                    <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
 
-                <Grid Grid.Column="0">
+                <views:HistorySidebarView x:Name="HistorySidebar" Grid.Column="0" DataContext="{Binding}"/>
+
+                <GridSplitter Grid.Column="1" Width="3"
+                              Background="{StaticResource Brush.Outline}"
+                              HorizontalAlignment="Center" VerticalAlignment="Stretch"
+                              ResizeBehavior="PreviousAndNext"
+                              IsEnabled="{Binding IsExpanded, ElementName=HistorySidebar}"/>
+
+                <Grid Grid.Column="2">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
@@ -151,12 +161,12 @@
                                         DataContext="{Binding LeftColumn.ActiveTab}"/>
                 </Grid>
 
-                <GridSplitter Grid.Column="1" Width="3"
+                <GridSplitter Grid.Column="3" Width="3"
                               Background="{StaticResource Brush.Outline}"
                               HorizontalAlignment="Center" VerticalAlignment="Stretch"
                               ResizeBehavior="PreviousAndNext"/>
 
-                <Grid Grid.Column="2">
+                <Grid Grid.Column="4">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>

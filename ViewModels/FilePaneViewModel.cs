@@ -648,6 +648,8 @@ namespace Josha.ViewModels
             {
                 await List.NavigateAsync(full);
                 Log.Info("Pane", $"Navigated to {full}");
+                if (!IsRemote)
+                    AppServices.History.RecordVisit(full);
             }
             catch (Exception ex)
             {

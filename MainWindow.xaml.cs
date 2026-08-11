@@ -14,11 +14,15 @@ namespace Josha
     public partial class MainWindow : Window
     {
         private readonly AppShellViewModel _shell = new();
+        private const double CollapsedSidebarWidth = 36;
+        private double _lastExpandedSidebarWidth = 220;
 
         public MainWindow()
         {
             InitializeComponent();
             DataContext = _shell;
+
+            HistorySidebar.ExpandedChanged += OnSidebarExpandedChanged;
 
             LeftPane.Activated += vm => _shell.SetActive(vm);
             RightPane.Activated += vm => _shell.SetActive(vm);
@@ -184,6 +188,22 @@ namespace Josha
             public RECT rcMonitor;
             public RECT rcWork;
             public uint dwFlags;
+        }
+
+        private void OnSidebarExpandedChanged(bool isExpanded)
+        {
+            if (isExpanded)
+            {
+                SidebarColumn.MinWidth = 160;
+                SidebarColumn.Width = new GridLength(_lastExpandedSidebarWidth);
+            }
+            else
+            {
+                if (SidebarColumn.ActualWidth > 0)
+                    _lastExpandedSidebarWidth = SidebarColumn.ActualWidth;
+                SidebarColumn.MinWidth = CollapsedSidebarWidth;
+                SidebarColumn.Width = new GridLength(CollapsedSidebarWidth);
+            }
         }
 
         private void OnTitleBarMouseDown(object sender, MouseButtonEventArgs e)

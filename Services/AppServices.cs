@@ -10,6 +10,7 @@ namespace Josha.Services
         public static ToastService Toast { get; private set; } = null!;
         public static FileOperationQueue Queue { get; private set; } = null!;
         public static UndoBufferService Undo { get; private set; } = null!;
+        public static NavigationHistoryService History { get; private set; } = null!;
 
         public static AppSettings Settings { get; private set; } = new();
         public static event Action? SettingsChanged;
@@ -24,6 +25,7 @@ namespace Josha.Services
             Queue = new FileOperationQueue();
             Queue.Start();
             Undo = new UndoBufferService();
+            History = new NavigationHistoryService();
 
             Settings = SettingsComponent.Load();
 

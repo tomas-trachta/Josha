@@ -105,6 +105,10 @@ namespace Josha.ViewModels
 
         public ObservableCollection<Bookmark> Bookmarks { get; } = new();
 
+        public ObservableCollection<NavigationHistoryEntry> RecentHistory => AppServices.History.Recent;
+        public ObservableCollection<NavigationHistoryEntry> MostVisitedHistory => AppServices.History.MostVisited;
+        public ICommand NavigateToHistoryEntryCommand { get; }
+
         // Raised when the OpenBookmarksCommand fires; MainWindow shows the picker.
         // Plain .NET event so the VM stays free of WPF Window dependencies.
         public event Action? BookmarksPickerRequested;
@@ -175,6 +179,7 @@ namespace Josha.ViewModels
             OpenBookmarksCommand     = new RelayCommand(_ => BookmarksPickerRequested?.Invoke());
             RemoveBookmarkCommand    = new RelayCommand(b => RemoveBookmark(b as Bookmark));
             NavigateToBookmarkCommand = new RelayCommand(b => NavigateToBookmark(b as Bookmark));
+            NavigateToHistoryEntryCommand = new RelayCommand(e => NavigateToHistoryEntry(e as NavigationHistoryEntry));
 
             OpenNewConnectionCommand = new RelayCommand(_ => RaiseNewConnection());
             OpenSiteManagerCommand   = new RelayCommand(_ => RaiseSiteManager());
@@ -261,6 +266,12 @@ namespace Josha.ViewModels
         {
             if (bookmark == null || ActivePane == null) return;
             _ = ActivePane.NavigateAsync(bookmark.TargetPath);
+        }
+
+        private void NavigateToHistoryEntry(NavigationHistoryEntry? entry)
+        {
+            if (entry == null || ActivePane == null) return;
+            _ = ActivePane.NavigateAsync(entry.TargetPath);
         }
 
         private bool CanPasteFromClipboard()
