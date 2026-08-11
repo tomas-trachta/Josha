@@ -172,7 +172,8 @@
                                  ItemsSource="{Binding RecentHistory}"
                                  ItemTemplate="{StaticResource HistoryEntryTemplate}"
                                  MouseDoubleClick="OnRowDoubleClick"
-                                 KeyDown="OnListKeyDown"/>
+                                 KeyDown="OnListKeyDown"
+                                 PreviewMouseRightButtonUp="OnRowPreviewMouseRightButtonUp"/>
                         <TextBlock Text="No directories visited yet"
                                    Style="{StaticResource EmptyStateStyle}"
                                    Visibility="{Binding RecentHistory.Count, Converter={StaticResource ZeroToVisible}}"/>
@@ -206,7 +207,8 @@
                                  ItemsSource="{Binding MostVisitedHistory}"
                                  ItemTemplate="{StaticResource HistoryEntryTemplate}"
                                  MouseDoubleClick="OnRowDoubleClick"
-                                 KeyDown="OnListKeyDown"/>
+                                 KeyDown="OnListKeyDown"
+                                 PreviewMouseRightButtonUp="OnRowPreviewMouseRightButtonUp"/>
                         <TextBlock Text="No directories visited yet"
                                    Style="{StaticResource EmptyStateStyle}"
                                    Visibility="{Binding MostVisitedHistory.Count, Converter={StaticResource ZeroToVisible}}"/>

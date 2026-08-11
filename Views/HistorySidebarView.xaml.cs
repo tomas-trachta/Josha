@@ -1,8 +1,10 @@
+using Josha.Business;
 using Josha.Models;
 using Josha.ViewModels;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Interop;
 
 namespace Josha.Views
 {
@@ -56,6 +58,22 @@ namespace Josha.Views
             if (DataContext is not AppShellViewModel shell) return;
 
             shell.NavigateToHistoryEntryCommand.Execute(entry);
+        }
+
+        private void OnRowPreviewMouseRightButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is not ListBox list) return;
+
+            var src = e.OriginalSource as DependencyObject;
+            var container = ItemsControl.ContainerFromElement(list, src) as ListBoxItem;
+            if (container?.Content is not NavigationHistoryEntry entry) return;
+
+            list.SelectedItem = entry;
+
+            var hwnd = (PresentationSource.FromVisual(this) as HwndSource)?.Handle ?? IntPtr.Zero;
+            var screen = list.PointToScreen(e.GetPosition(list));
+            ShellContextMenuComponent.Show(new[] { entry.TargetPath }, hwnd, (int)screen.X, (int)screen.Y);
+            e.Handled = true;
         }
     }
 }
