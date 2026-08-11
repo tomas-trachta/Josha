@@ -60,6 +60,7 @@ namespace Josha.ViewModels
         public ICommand RenameCommand { get; }
         public ICommand DeleteRecycleCommand { get; }
         public ICommand DeletePermanentCommand { get; }
+        public ICommand UndoCommand { get; }
         public ICommand RefreshActiveCommand { get; }
         public ICommand SetActiveLeftCommand { get; }
         public ICommand SetActiveRightCommand { get; }
@@ -143,6 +144,7 @@ namespace Josha.ViewModels
             RenameCommand            = new RelayCommand(_ => _ = RenameAsync(),                     _ => HasSingleFileOrDirSelection());
             DeleteRecycleCommand     = new RelayCommand(_ => _ = DeleteSelectedAsync(toRecycle: true),  _ => HasAnySelection());
             DeletePermanentCommand   = new RelayCommand(_ => _ = DeleteSelectedAsync(toRecycle: false), _ => HasAnySelection());
+            UndoCommand              = new RelayCommand(_ => _ = UndoLastActionAsync(), _ => AppServices.Undo.CanUndo);
             RefreshActiveCommand     = new RelayCommand(_ => { if (ActivePane != null) _ = ActivePane.List.RefreshAsync(); });
 
             SetActiveLeftCommand     = new RelayCommand(_ => SetActiveColumn(LeftColumn));
@@ -602,6 +604,7 @@ namespace Josha.ViewModels
             AddCmd("Edit in external editor", EditCommand,             "F4");
             AddCmd("Move to Recycle Bin",  DeleteRecycleCommand,       "F8");
             AddCmd("Permanent delete",     DeletePermanentCommand,     "Shift+F8");
+            AddCmd("Undo",                 UndoCommand,                "Ctrl+Z");
             AddCmd("Refresh active pane",  RefreshActiveCommand,       "Ctrl+R");
             AddCmd("Toggle preview pane",  TogglePreviewPaneCommand,   "Ctrl+Q");
             AddCmd("New tab",              NewTabCommand,              "Ctrl+T");
@@ -768,21 +771,32 @@ namespace Josha.ViewModels
                 _ = dstPane.List.RefreshAsync();
             };
 
+            // Undo is only meaningful for a same-provider local move: remote
+            // state can drift between the action and a later Ctrl+Z, and a
+            // copy has nothing to "revert" (the source is untouched).
+            bool recordUndo = kind == FileOperationKind.Move && !srcFs.IsRemote && !dstFs.IsRemote;
+
             int enqueued = 0;
             foreach (var row in selection)
             {
+                var srcPath = row.FullPath;
                 var dstPath = JoinPath(dst, row.Name, dstFs.IsRemote);
+                Action? onSuccess = recordUndo
+                    ? () => AppServices.Undo.Push(new MoveUndoAction(srcFs, dstPath, srcPath))
+                    : null;
+
                 AppServices.Queue.Enqueue(new FileOperationRequest
                 {
                     Kind = kind,
                     SrcProvider = srcFs,
                     DstProvider = dstFs,
-                    SrcPath = row.FullPath,
+                    SrcPath = srcPath,
                     DstPath = dstPath,
                     DisplayName = row.Name,
                     Overwrite = overwrite,
                     SizeHint = row.IsDirectory ? -1 : (row.SizeBytes ?? -1),
                     OnComplete = refresh,
+                    OnSuccess = onSuccess,
                 });
                 enqueued++;
             }
@@ -881,7 +895,7 @@ namespace Josha.ViewModels
                 foreach (var s in capturedPane.List.SelectedRows.ToList())
                     s.IsSelected = false;
                 freshRow.IsSelected = true;
-                capturedPane.List.StartRename(freshRow);
+                capturedPane.List.StartRename(freshRow, isNewItem: true);
             }), System.Windows.Threading.DispatcherPriority.Background);
 
             StatusText = $"Created '{name}'";
@@ -943,7 +957,7 @@ namespace Josha.ViewModels
                 foreach (var s in capturedPane.List.SelectedRows.ToList())
                     s.IsSelected = false;
                 freshRow.IsSelected = true;
-                capturedPane.List.StartRename(freshRow);
+                capturedPane.List.StartRename(freshRow, isNewItem: true);
             }), System.Windows.Threading.DispatcherPriority.Background);
 
             StatusText = $"Created '{name}'";
@@ -998,8 +1012,8 @@ namespace Josha.ViewModels
             if (!toRecycle && AppServices.Settings.ConfirmDeletePermanent)
             {
                 var prompt = selection.Count == 1
-                    ? $"Permanently delete '{selection[0].Name}'?\n\nThis can't be undone."
-                    : $"Permanently delete {selection.Count} items?\n\nThis can't be undone.";
+                    ? $"Permanently delete '{selection[0].Name}'?\n\nIt won't go to the Recycle Bin."
+                    : $"Permanently delete {selection.Count} items?\n\nThey won't go to the Recycle Bin.";
 
                 var result = MessageBox.Show(
                     prompt,
@@ -1021,14 +1035,55 @@ namespace Josha.ViewModels
             foreach (var row in selection)
             {
                 StatusText = (toRecycle ? "Recycling " : "Deleting ") + row.Name + "…";
-                var result = await fs.DeleteAsync(row.FullPath, toRecycle && !fs.IsRemote);
-                if (result.Success) ok++;
+
+                // Shift+Delete on a local item: stage instead of calling
+                // DeletePermanent directly so Ctrl+Z has something to undo —
+                // see PermanentDeleteUndoAction.
+                if (!toRecycle && !fs.IsRemote)
+                {
+                    var staged = FileOpsComponent.DeleteToStaging(row.FullPath, out var stagingPath);
+                    if (staged.Success)
+                    {
+                        ok++;
+                        AppServices.Undo.Push(new PermanentDeleteUndoAction(stagingPath!, row.FullPath));
+                    }
+                    else { fail++; lastError = staged.Error; Log.Warn("Shell", $"Delete failed: {row.Name}: {staged.Error}"); }
+                    continue;
+                }
+
+                var toBin = toRecycle && !fs.IsRemote;
+                var result = await fs.DeleteAsync(row.FullPath, toBin);
+                if (result.Success)
+                {
+                    ok++;
+                    if (toBin) AppServices.Undo.Push(new DeleteUndoAction(row.FullPath));
+                }
                 else { fail++; lastError = result.Error; Log.Warn("Shell", $"Delete failed: {row.Name}: {result.Error}"); }
             }
 
             await ActivePane.List.RefreshAsync();
             var verb = toRecycle && !fs.IsRemote ? "Moved to Recycle Bin" : "Deleted";
             ReportOpOutcome(verb, ok, fail, lastError);
+        }
+
+        private async Task UndoLastActionAsync()
+        {
+            var (success, description, error) = await AppServices.Undo.UndoLastAsync();
+            if (string.IsNullOrEmpty(description)) return;
+
+            if (ActivePane != null) await ActivePane.List.RefreshAsync();
+            if (InactivePane != null) await InactivePane.List.RefreshAsync();
+
+            if (success)
+            {
+                StatusText = $"Undone: {description}";
+                AppServices.Toast.Success($"Undone: {description}");
+            }
+            else
+            {
+                StatusText = $"Undo failed: {description}";
+                AppServices.Toast.Error($"Couldn't undo {description}: {error ?? "see log"}");
+            }
         }
 
         private void ReportOpOutcome(string verb, int ok, int fail, string? lastError)

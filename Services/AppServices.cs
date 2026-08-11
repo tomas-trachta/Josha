@@ -9,6 +9,7 @@ namespace Josha.Services
         public static SnapshotService Snapshot { get; private set; } = null!;
         public static ToastService Toast { get; private set; } = null!;
         public static FileOperationQueue Queue { get; private set; } = null!;
+        public static UndoBufferService Undo { get; private set; } = null!;
 
         public static AppSettings Settings { get; private set; } = new();
         public static event Action? SettingsChanged;
@@ -16,11 +17,13 @@ namespace Josha.Services
         public static void Initialize()
         {
             Log.Initialize();
+            FileOpsComponent.ClearStaleStaging();
             SnapshotComponent.MigrateLegacyOnStartup();
             Snapshot = new SnapshotService();
             Toast = new ToastService();
             Queue = new FileOperationQueue();
             Queue.Start();
+            Undo = new UndoBufferService();
 
             Settings = SettingsComponent.Load();
 

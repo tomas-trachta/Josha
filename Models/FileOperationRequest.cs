@@ -23,5 +23,9 @@ namespace Josha.Models
         // Optional refresh hooks; the queue calls each after the request
         // completes (success or fail) so the affected pane VMs can re-list.
         public Action? OnComplete { get; init; }
+
+        // Fired only on success, before OnComplete — used to record undo
+        // actions (e.g. Ctrl+Z for a completed move).
+        public Action? OnSuccess { get; init; }
     }
 }

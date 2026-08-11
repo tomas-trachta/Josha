@@ -94,7 +94,11 @@ namespace Josha.Services
             catch (OperationCanceledException) { job.MarkCancelled(); ScheduleClear(job); FireRefresh(req); return; }
             catch (Exception ex) { job.MarkFailed(ex.Message); ScheduleClear(job); FireRefresh(req); return; }
 
-            if (result.Success) job.MarkCompleted();
+            if (result.Success)
+            {
+                job.MarkCompleted();
+                FireSuccess(req);
+            }
             else if (string.Equals(result.Error, "Cancelled", StringComparison.OrdinalIgnoreCase)) job.MarkCancelled();
             else job.MarkFailed(result.Error ?? "Unknown error");
 
@@ -146,6 +150,12 @@ namespace Josha.Services
         {
             if (req.OnComplete == null) return;
             DispatchInvoke(req.OnComplete);
+        }
+
+        private static void FireSuccess(FileOperationRequest req)
+        {
+            if (req.OnSuccess == null) return;
+            DispatchInvoke(req.OnSuccess);
         }
 
         private static void DispatchInvoke(Action action)

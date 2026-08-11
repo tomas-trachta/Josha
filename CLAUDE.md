@@ -16,6 +16,7 @@ NuGet dependencies:
 - **SSH.NET** — SFTP client.
 - **MahApps.Metro.IconPacks.Material** — Material Design icons.
 - **Vanara.PInvoke.Shell32** — Win32 `IContextMenu` invocation for the native shell menu.
+- **Vanara.Windows.Shell** — `RecycleBin` shell wrapper, used to restore a recycled item by its original path for Ctrl+Z delete-undo.
 
 ## Architecture
 
@@ -65,7 +66,8 @@ All encrypted files use **Windows DPAPI** (`DataProtectionScope.CurrentUser`) wi
 
 ### Services (`Services/`)
 
-- **AppServices.cs** — Static singleton: `Toast`, `Queue`, `Snapshot`, `Settings`. `Initialize()` wires everything and loads settings. `SettingsChanged` event for live updates.
+- **AppServices.cs** — Static singleton: `Toast`, `Queue`, `Snapshot`, `Settings`, `Undo`. `Initialize()` wires everything and loads settings. `SettingsChanged` event for live updates.
+- **UndoBufferService.cs** — Ctrl+Z target. Bounded stack (last 20) of `IUndoableAction` (`Business/UndoActions.cs`: `MoveUndoAction`, `RenameUndoAction`, `DeleteUndoAction`, `PermanentDeleteUndoAction`), recorded only for local-filesystem moves/renames/deletes — never remote. `MoveOp`/rename success handlers and `DeleteSelectedAsync` push onto it; `UndoCommand` pops and reverts the most recent one. Recycle-bin delete undo restores via `Vanara.Windows.Shell.RecycleBin.GetItemFromOriginalPath` + `Restore`. Shift+Delete (permanent) has no OS-level undo, so it's staged instead: `FileOpsComponent.DeleteToStaging` moves the item under `C:\josha_data\trash\<guid>\` rather than deleting it outright; `PermanentDeleteUndoAction` moves it back on Ctrl+Z. When an action is evicted past the 20-action cap, `Push` calls `IUndoableAction.Discard()`, which is where a staged item is actually removed from disk — `AppServices.Initialize()` also sweeps `trash/` at startup since a fresh buffer can't reference last session's slots.
 - **Log.cs** — Category-tagged logging to `C:\josha_data\logs\Josha-YYYY-MM-DD.log`. Info/Warn/Error.
 - **FileOperationQueue.cs** — Async multi-worker queue (Channels, default 3 concurrent). Wraps `FileOperationRequest` in `QueueJobViewModel` with status (Pending/Running/Succeeded/Failed/Cancelled) and progress. Terminal jobs persist 10s in UI before auto-clear.
 - **ToastService.cs** — Observable toast list (max 6). Severity-driven auto-dismiss (4s default; errors require dismiss). Optional action label/callback.
@@ -145,6 +147,7 @@ All data lives in `C:\josha_data\` (created on first write):
 | `namespaces.dans` | TSV + envelope | DPAPI | `Josha/namespaces/v1` | legacy namespace feature |
 | `bindings.dans` | TSV + envelope | DPAPI | `Josha/bindings/v1` | legacy Ctrl+key feature |
 | `logs/Josha-YYYY-MM-DD.log` | text | none | — | category-tagged logs |
+| `trash/<guid>/<name>` | raw files | none | — | staged Shift+Delete items awaiting Ctrl+Z or eviction from the undo buffer (see UndoBufferService.cs) |
 
 - All encryption is **Windows DPAPI** (`DataProtectionScope.CurrentUser`). The OS-managed protection key is pinned to the user profile + machine, so files are unreadable if the disk leaves the device or the profile is copied to another user. There is no passphrase prompt and no hardware-ID logic.
 - **Per-file entropy** is mixed into Protect/Unprotect so a different component (or a different process running as the same user) can't unprotect another file by passing null entropy.
@@ -163,4 +166,4 @@ All data lives in `C:\josha_data\` (created on first write):
 - **Edit-on-server:** watch the temp **directory** (not the file) so atomic-rename saves from VS Code / Vim / Notepad++ are caught; SHA-compare before re-upload to skip no-op saves.
 - **Command palette:** Ctrl+P; scoring is prefix > word-start > substring > subsequence; top 80.
 - **Theming:** brushes are resource-keyed (`Brush.Surface`, `Brush.Accent`, …); custom controls look them up via `ResourceKeyToBrushConverter` so theme switches propagate live.
-- **Keyboard:** function keys (F2–F8) drive ops; Ctrl+1/2/3 view modes; Ctrl+Tab / Ctrl+Left/Right cycle tabs/panes; Ctrl+Shift+1–9 quick-connect to most-recent sites; Ctrl+H toggle hidden; Ctrl+F focus filter; Ctrl+V paste (cut/copy detected via `"Preferred DropEffect"` clipboard marker).
+- **Keyboard:** function keys (F2–F8) drive ops; Ctrl+1/2/3 view modes; Ctrl+Tab / Ctrl+Left/Right cycle tabs/panes; Ctrl+Shift+1–9 quick-connect to most-recent sites; Ctrl+H toggle hidden; Ctrl+F focus filter; Ctrl+V paste (cut/copy detected via `"Preferred DropEffect"` clipboard marker); Ctrl+Z undo last local move/rename/delete (recycle-bin or Shift+Delete).

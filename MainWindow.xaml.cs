@@ -233,6 +233,20 @@ namespace Josha
                 return;
             }
 
+            // Handled here rather than as a window KeyBinding: TextBox has a
+            // class-level Ctrl+Z (EditingCommands.Undo) that swallows the key
+            // before a bubble-routed KeyBinding ever sees it whenever focus is
+            // in the path bar, filter box, or an inline rename editor.
+            if (e.Key == Key.Z && Keyboard.Modifiers == ModifierKeys.Control)
+            {
+                if (_shell.UndoCommand.CanExecute(null))
+                {
+                    _shell.UndoCommand.Execute(null);
+                    e.Handled = true;
+                }
+                return;
+            }
+
             // Ctrl+V pastes files from the shell clipboard into the active pane.
             // Skipped when a TextBox has focus so plain text paste still works.
             if (e.Key == Key.V && Keyboard.Modifiers == ModifierKeys.Control)

@@ -1,5 +1,6 @@
 using Josha.Services;
 using System.IO;
+using System.Linq;
 
 namespace Josha.Business
 {
@@ -239,6 +240,111 @@ namespace Josha.Business
                 Log.Error("FileOps", $"Permanent delete failed: {path}", ex);
                 return OpResult.Fail(ex.Message);
             }
+        }
+
+        // Undo-able stand-in for a Shift+Delete: unlike the Recycle Bin, a true
+        // permanent delete leaves nothing behind to restore. Instead the item
+        // moves into its own GUID-named slot under the staging root so a later
+        // PermanentDeleteUndoAction can move it straight back, and same-named
+        // deletes from different folders never collide with each other.
+        private static readonly string StagingRoot = Path.Combine(@"C:\josha_data", "trash");
+
+        public static OpResult DeleteToStaging(string path, out string? stagingPath)
+        {
+            stagingPath = null;
+            Log.Info("FileOps", $"Stage for deletion: {path}");
+            try
+            {
+                if (!Directory.Exists(path) && !File.Exists(path))
+                    return OpResult.Fail("Item does not exist");
+
+                Directory.CreateDirectory(StagingRoot);
+                var slot = Path.Combine(StagingRoot, Guid.NewGuid().ToString("N"));
+                Directory.CreateDirectory(slot);
+                var dest = Path.Combine(slot, Path.GetFileName(path));
+
+                if (Directory.Exists(path))
+                    Directory.Move(path, dest);
+                else
+                    File.Move(path, dest);
+
+                stagingPath = dest;
+                Log.Info("FileOps", $"Stage for deletion ok: {path} -> {dest}");
+                SnapshotComponent.NotifySnapshotChanged();
+                return OpResult.Ok();
+            }
+            catch (Exception ex)
+            {
+                Log.Error("FileOps", $"Stage for deletion failed: {path}", ex);
+                return OpResult.Fail(ex.Message);
+            }
+        }
+
+        public static OpResult RestoreFromStaging(string stagingPath, string originalPath)
+        {
+            Log.Info("FileOps", $"Restore from staging: {stagingPath} -> {originalPath}");
+            try
+            {
+                if (!Directory.Exists(stagingPath) && !File.Exists(stagingPath))
+                    return OpResult.Fail("Item no longer in the undo buffer's staging area");
+                if (Directory.Exists(originalPath) || File.Exists(originalPath))
+                    return OpResult.Fail("An item already exists at the original location");
+
+                if (Directory.Exists(stagingPath))
+                    Directory.Move(stagingPath, originalPath);
+                else
+                    File.Move(stagingPath, originalPath);
+
+                RemoveSlotIfEmpty(stagingPath);
+                Log.Info("FileOps", $"Restore from staging ok: {originalPath}");
+                SnapshotComponent.NotifySnapshotChanged();
+                return OpResult.Ok();
+            }
+            catch (Exception ex)
+            {
+                Log.Error("FileOps", $"Restore from staging failed: {stagingPath} -> {originalPath}", ex);
+                return OpResult.Fail(ex.Message);
+            }
+        }
+
+        // Called once a PermanentDeleteUndoAction ages out of the undo buffer —
+        // the item is gone for good from here on, same as an ordinary Shift+Delete.
+        public static void PurgeStaged(string stagingPath)
+        {
+            try
+            {
+                if (Directory.Exists(stagingPath)) Directory.Delete(stagingPath, recursive: true);
+                else if (File.Exists(stagingPath)) File.Delete(stagingPath);
+                RemoveSlotIfEmpty(stagingPath);
+            }
+            catch (Exception ex)
+            {
+                Log.Warn("FileOps", $"Failed to purge staged delete at {stagingPath}", ex);
+            }
+        }
+
+        // Called once at startup: a fresh in-memory undo buffer can't reference
+        // anything staged by a previous process run, so it's unreachable and
+        // safe to sweep away wholesale rather than leaking disk space forever.
+        public static void ClearStaleStaging()
+        {
+            try
+            {
+                if (Directory.Exists(StagingRoot))
+                    Directory.Delete(StagingRoot, recursive: true);
+            }
+            catch (Exception ex)
+            {
+                Log.Warn("FileOps", "Failed to clear stale delete staging area", ex);
+            }
+        }
+
+        private static void RemoveSlotIfEmpty(string stagingPath)
+        {
+            var slot = Path.GetDirectoryName(stagingPath);
+            if (string.IsNullOrEmpty(slot) || !Directory.Exists(slot)) return;
+            if (!Directory.EnumerateFileSystemEntries(slot).Any())
+                Directory.Delete(slot);
         }
 
         private sealed class CopyContext

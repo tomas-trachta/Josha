@@ -417,11 +417,19 @@ namespace Josha.ViewModels
             }, TaskScheduler.Default);
         }
 
-        public void StartRename(FileRowViewModel row)
+        // Set by StartRename when the edit session is naming a just-created item
+        // rather than renaming an existing one — CommitRenameAsync consumes it to
+        // skip the undo push, since "type its name" is part of Create, not a
+        // separately reversible Rename (otherwise Ctrl+Z after create+delete would
+        // undo the initial naming instead of the delete).
+        private FileRowViewModel? _suppressUndoForRow;
+
+        public void StartRename(FileRowViewModel row, bool isNewItem = false)
         {
             if (row == null || row.IsParentLink) return;
             foreach (var r in Rows)
                 if (r != row && r.IsEditing) r.IsEditing = false;
+            _suppressUndoForRow = isNewItem ? row : null;
             row.IsEditing = true;
         }
 
@@ -433,13 +441,19 @@ namespace Josha.ViewModels
         public async Task CommitRenameAsync(FileRowViewModel row, string newName)
         {
             if (row == null) return;
+
+            var suppressUndo = ReferenceEquals(_suppressUndoForRow, row);
+            _suppressUndoForRow = null;
+
             if (string.IsNullOrWhiteSpace(newName) || newName == row.Name)
             {
                 row.IsEditing = false;
                 return;
             }
 
-            var result = await FileSystem.RenameAsync(row.FullPath, newName).ConfigureAwait(true);
+            var oldPath = row.FullPath;
+            var oldName = row.Name;
+            var result = await FileSystem.RenameAsync(oldPath, newName).ConfigureAwait(true);
             row.IsEditing = false;
 
             if (!result.Success)
@@ -447,6 +461,16 @@ namespace Josha.ViewModels
                 Log.Warn("FileList", $"Rename failed for '{row.Name}' → '{newName}': {result.Error}");
                 AppServices.Toast.Error($"Rename failed: {result.Error}");
                 return;
+            }
+
+            if (!FileSystem.IsRemote && !suppressUndo)
+            {
+                var parent = Path.GetDirectoryName(oldPath);
+                if (!string.IsNullOrEmpty(parent))
+                {
+                    var newPath = Path.Combine(parent, newName);
+                    AppServices.Undo.Push(new RenameUndoAction(FileSystem, newPath, oldName));
+                }
             }
 
             AppServices.Toast.Success($"Renamed to '{newName}'");
