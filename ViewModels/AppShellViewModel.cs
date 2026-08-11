@@ -745,6 +745,84 @@ namespace Josha.ViewModels
             foreach (var t in RightColumn.Tabs) t.IsActive = ReferenceEquals(t, active);
         }
 
+        // Snapshots every tab (path, view mode, and — for remote tabs — the site
+        // id) so the next launch can reopen exactly where this session left off.
+        public SessionState CaptureSession()
+        {
+            return new SessionState
+            {
+                Left = CaptureColumn(LeftColumn),
+                Right = CaptureColumn(RightColumn),
+                ActiveColumnIsLeft = ActiveColumn == LeftColumn,
+            };
+        }
+
+        private static PaneColumnState CaptureColumn(PaneColumnViewModel column)
+        {
+            var state = new PaneColumnState
+            {
+                ActiveTabIndex = column.ActiveTab != null ? column.Tabs.IndexOf(column.ActiveTab) : 0,
+            };
+
+            foreach (var tab in column.Tabs)
+            {
+                state.Tabs.Add(new PaneTabState
+                {
+                    LocalPath = tab.IsRemote ? null : tab.CurrentPath,
+                    SiteId = tab.IsRemote ? tab.Site?.Id : null,
+                    RemotePath = tab.IsRemote ? tab.CurrentPath : null,
+                    ViewMode = tab.CurrentMode,
+                });
+            }
+
+            return state;
+        }
+
+        // Replaces each column's default C:\ startup tab with the tabs from a
+        // saved session. Remote tabs are matched back to their site by id — if
+        // the site was since deleted from the site manager, that tab is just
+        // dropped rather than failing the whole restore.
+        public void RestoreSession(SessionState session)
+        {
+            var sites = SiteManagerComponent.Load();
+
+            RestoreColumn(LeftColumn, session.Left, sites);
+            RestoreColumn(RightColumn, session.Right, sites);
+
+            ActiveColumn = session.ActiveColumnIsLeft ? LeftColumn : RightColumn;
+            SyncActiveStates();
+        }
+
+        private static void RestoreColumn(PaneColumnViewModel column, PaneColumnState state, List<FtpSite> sites)
+        {
+            if (state.Tabs.Count == 0) return;
+
+            var placeholderTab = column.Tabs[0];
+
+            foreach (var tabState in state.Tabs)
+            {
+                FilePaneViewModel? tab = null;
+
+                if (tabState.SiteId is Guid siteId)
+                {
+                    var site = sites.FirstOrDefault(s => s.Id == siteId);
+                    if (site != null)
+                        tab = column.AddRemoteTab(site, tabState.RemotePath);
+                }
+                else if (!string.IsNullOrEmpty(tabState.LocalPath))
+                {
+                    tab = column.AddTab(tabState.LocalPath);
+                }
+
+                if (tab != null) tab.CurrentMode = tabState.ViewMode;
+            }
+
+            if (column.Tabs.Count > 1) column.Tabs.Remove(placeholderTab);
+
+            var idx = Math.Clamp(state.ActiveTabIndex, 0, column.Tabs.Count - 1);
+            column.ActiveTab = column.Tabs[idx];
+        }
+
         private Task CopySelectedAsync() => EnqueueBatchAsync(FileOperationKind.Copy);
         private Task MoveSelectedAsync() => EnqueueBatchAsync(FileOperationKind.Move);
 

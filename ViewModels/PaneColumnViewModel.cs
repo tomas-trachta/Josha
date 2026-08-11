@@ -49,14 +49,26 @@ namespace Josha.ViewModels
             return tab;
         }
 
-        public FilePaneViewModel AddRemoteTab(Models.FtpSite site)
+        public FilePaneViewModel AddRemoteTab(Models.FtpSite site, string? restorePath = null)
         {
             var tab = new FilePaneViewModel(initialPath: null);
             tab.AttachRemoteSite(site);
             Tabs.Add(tab);
             ActiveTab = tab;
-            _ = tab.ConnectAsync();
+            _ = ConnectAndRestorePathAsync(tab, restorePath);
             return tab;
+        }
+
+        // Connects first (which navigates to the site's configured start
+        // directory), then re-navigates to the path the tab was last showing
+        // when the session was saved — best-effort, so a since-deleted remote
+        // directory just leaves the tab at the start directory instead of
+        // failing the restore.
+        private static async Task ConnectAndRestorePathAsync(FilePaneViewModel tab, string? restorePath)
+        {
+            await tab.ConnectAsync();
+            if (!string.IsNullOrEmpty(restorePath))
+                await tab.NavigateAsync(restorePath);
         }
 
         public void CloseTab(FilePaneViewModel? tab)

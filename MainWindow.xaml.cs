@@ -1,3 +1,5 @@
+using Josha.Business;
+using Josha.Models;
 using Josha.Services;
 using Josha.ViewModels;
 using Josha.Views;
@@ -104,6 +106,52 @@ namespace Josha
             var scale = AppServices.Settings.FontScale;
             if (scale > 0 && System.Math.Abs(scale - 1.0) > 0.01)
                 WindowRoot.LayoutTransform = new ScaleTransform(scale, scale);
+
+            RestoreWindowLayout(AppServices.Settings.Window);
+            if (AppServices.Settings.Session != null)
+                _shell.RestoreSession(AppServices.Settings.Session);
+
+            Closing += OnClosingSaveState;
+        }
+
+        // Applies the saved bounds only if they'd still land at least partly on
+        // some connected monitor — otherwise a since-unplugged second monitor
+        // would leave the window opening off-screen with no way to drag it back.
+        private void RestoreWindowLayout(WindowLayoutState? layout)
+        {
+            if (layout == null || layout.Width <= 0 || layout.Height <= 0) return;
+
+            var onScreen = layout.Left + layout.Width > SystemParameters.VirtualScreenLeft
+                && layout.Left < SystemParameters.VirtualScreenLeft + SystemParameters.VirtualScreenWidth
+                && layout.Top + layout.Height > SystemParameters.VirtualScreenTop
+                && layout.Top < SystemParameters.VirtualScreenTop + SystemParameters.VirtualScreenHeight;
+            if (!onScreen) return;
+
+            WindowStartupLocation = WindowStartupLocation.Manual;
+            Left = layout.Left;
+            Top = layout.Top;
+            Width = layout.Width;
+            Height = layout.Height;
+            if (layout.IsMaximized) WindowState = WindowState.Maximized;
+        }
+
+        private void OnClosingSaveState(object? sender, System.ComponentModel.CancelEventArgs e)
+        {
+            var isMaximized = WindowState == WindowState.Maximized;
+            var bounds = isMaximized ? RestoreBounds : new Rect(Left, Top, Width, Height);
+
+            var settings = AppServices.Settings.Clone();
+            settings.Window = new WindowLayoutState
+            {
+                Left = bounds.Left,
+                Top = bounds.Top,
+                Width = bounds.Width,
+                Height = bounds.Height,
+                IsMaximized = isMaximized,
+            };
+            settings.Session = _shell.CaptureSession();
+
+            SettingsComponent.Save(settings);
         }
 
         // The actual maximized-clipping fix is in WmGetMinMaxInfo (clamps to
