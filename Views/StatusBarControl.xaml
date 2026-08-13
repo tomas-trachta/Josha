@@ -4,9 +4,33 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="clr-namespace:Josha.ViewModels"
+             xmlns:iconPacks="http://metro.mahapps.com/winfx/xaml/iconpacks"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance Type=vm:AppShellViewModel}"
              d:DesignHeight="28" d:DesignWidth="900">
+    <UserControl.Resources>
+        <Style x:Key="UsagePillStyle" TargetType="Border">
+            <Setter Property="Margin" Value="6,0,0,0"/>
+            <Setter Property="Padding" Value="6,1"/>
+            <Setter Property="CornerRadius" Value="3"/>
+            <Setter Property="Background" Value="{StaticResource Brush.SurfaceElevated}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource Brush.OutlineSubtle}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style x:Key="UsageTextStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontFamily" Value="Cascadia Mono, Consolas, Segoe UI"/>
+        </Style>
+        <Style x:Key="UsageLabelStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="{StaticResource Brush.OnSurfaceSubtle}"/>
+            <Setter Property="Margin" Value="0,0,4,0"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+    </UserControl.Resources>
     <Border Background="{StaticResource Brush.SurfaceMuted}"
             BorderBrush="{StaticResource Brush.OutlineSubtle}"
             BorderThickness="0,1,0,0"
@@ -16,6 +40,7 @@
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="Auto"/>
@@ -60,7 +85,39 @@
                        Foreground="{StaticResource Brush.OnSurfaceMuted}"
                        VerticalAlignment="Center"/>
 
-            <TextBlock Grid.Column="5"
+            <StackPanel Grid.Column="5"
+                        Orientation="Horizontal"
+                        Margin="14,0,0,0">
+                <Border Style="{StaticResource UsagePillStyle}" Margin="0" ToolTip="CPU usage">
+                    <StackPanel Orientation="Horizontal">
+                        <iconPacks:PackIconMaterial Kind="Cpu64Bit"
+                                                    Width="12" Height="12"
+                                                    Margin="0,0,4,0"
+                                                    VerticalAlignment="Center"
+                                                    Foreground="{StaticResource Brush.OnSurfaceSubtle}"/>
+                        <TextBlock Style="{StaticResource UsageLabelStyle}" Text="CPU"/>
+                        <TextBlock Style="{StaticResource UsageTextStyle}"
+                                   Text="{Binding CpuUsagePercent, StringFormat={}{0:0}%}"
+                                   Foreground="{Binding CpuUsagePercent, Converter={StaticResource UsagePercentToBrush}}"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource UsagePillStyle}" ToolTip="Memory usage">
+                    <StackPanel Orientation="Horizontal">
+                        <iconPacks:PackIconMaterial Kind="Memory"
+                                                    Width="12" Height="12"
+                                                    Margin="0,0,4,0"
+                                                    VerticalAlignment="Center"
+                                                    Foreground="{StaticResource Brush.OnSurfaceSubtle}"/>
+                        <TextBlock Style="{StaticResource UsageLabelStyle}" Text="MEM"/>
+                        <TextBlock Style="{StaticResource UsageTextStyle}"
+                                   Text="{Binding MemoryUsagePercent, StringFormat={}{0:0}%}"
+                                   Foreground="{Binding MemoryUsagePercent, Converter={StaticResource UsagePercentToBrush}}"/>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+
+            <TextBlock Grid.Column="6"
                        Text="{Binding Clock}"
                        FontSize="12"
                        Foreground="{StaticResource Brush.OnSurface}"

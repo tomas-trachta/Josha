@@ -53,6 +53,21 @@ namespace Josha.ViewModels
             private set { if (_clock == value) return; _clock = value; OnPropertyChanged(); }
         }
 
+        private double _cpuUsagePercent;
+        private double _memoryUsagePercent;
+
+        public double CpuUsagePercent
+        {
+            get => _cpuUsagePercent;
+            private set { if (_cpuUsagePercent == value) return; _cpuUsagePercent = value; OnPropertyChanged(); }
+        }
+
+        public double MemoryUsagePercent
+        {
+            get => _memoryUsagePercent;
+            private set { if (_memoryUsagePercent == value) return; _memoryUsagePercent = value; OnPropertyChanged(); }
+        }
+
         public ICommand CopyCommand { get; }
         public ICommand MoveCommand { get; }
         public ICommand MkdirCommand { get; }
@@ -143,6 +158,10 @@ namespace Josha.ViewModels
             var clockTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(30) };
             clockTimer.Tick += (_, _) => Clock = DateTime.Now.ToString("HH:mm");
             clockTimer.Start();
+
+            var resourceTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1.5) };
+            resourceTimer.Tick += (_, _) => RefreshResourceUsage();
+            resourceTimer.Start();
 
             CopyCommand              = new RelayCommand(_ => _ = CopySelectedAsync(),                _ => HasAnySelection());
             MoveCommand              = new RelayCommand(_ => _ = MoveSelectedAsync(),                _ => HasAnySelection());
@@ -270,6 +289,12 @@ namespace Josha.ViewModels
         {
             if (bookmark == null || ActivePane == null) return;
             _ = ActivePane.NavigateAsync(bookmark.TargetPath);
+        }
+
+        private void RefreshResourceUsage()
+        {
+            CpuUsagePercent = SystemResourceMonitorComponent.GetCpuUsagePercent();
+            MemoryUsagePercent = SystemResourceMonitorComponent.GetMemoryUsagePercent();
         }
 
         private void NavigateToHistoryEntry(NavigationHistoryEntry? entry)
