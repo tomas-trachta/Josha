@@ -648,8 +648,15 @@ namespace Josha.ViewModels
             {
                 await List.NavigateAsync(full);
                 Log.Info("Pane", $"Navigated to {full}");
-                if (!IsRemote)
+                if (IsRemote)
+                {
+                    if (Site != null)
+                        AppServices.RemoteHistory.RecordVisit(Site.Id, Site.Name, full);
+                }
+                else
+                {
                     AppServices.History.RecordVisit(full);
+                }
             }
             catch (Exception ex)
             {

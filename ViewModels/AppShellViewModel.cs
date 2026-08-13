@@ -109,6 +109,9 @@ namespace Josha.ViewModels
         public ObservableCollection<NavigationHistoryEntry> MostVisitedHistory => AppServices.History.MostVisited;
         public ICommand NavigateToHistoryEntryCommand { get; }
 
+        public ObservableCollection<RemoteHistoryEntry> RemoteDirectoryHistory => AppServices.RemoteHistory.Recent;
+        public ICommand NavigateToRemoteHistoryEntryCommand { get; }
+
         // Raised when the OpenBookmarksCommand fires; MainWindow shows the picker.
         // Plain .NET event so the VM stays free of WPF Window dependencies.
         public event Action? BookmarksPickerRequested;
@@ -180,6 +183,7 @@ namespace Josha.ViewModels
             RemoveBookmarkCommand    = new RelayCommand(b => RemoveBookmark(b as Bookmark));
             NavigateToBookmarkCommand = new RelayCommand(b => NavigateToBookmark(b as Bookmark));
             NavigateToHistoryEntryCommand = new RelayCommand(e => NavigateToHistoryEntry(e as NavigationHistoryEntry));
+            NavigateToRemoteHistoryEntryCommand = new RelayCommand(e => NavigateToRemoteHistoryEntry(e as RemoteHistoryEntry));
 
             OpenNewConnectionCommand = new RelayCommand(_ => RaiseNewConnection());
             OpenSiteManagerCommand   = new RelayCommand(_ => RaiseSiteManager());
@@ -272,6 +276,30 @@ namespace Josha.ViewModels
         {
             if (entry == null || ActivePane == null) return;
             _ = ActivePane.NavigateAsync(entry.TargetPath);
+        }
+
+        // If the active pane is already connected to the entry's site, just
+        // navigate within it; otherwise open a fresh remote tab for that site
+        // and land on the remembered path — same connect-then-restore flow
+        // used for session restore (PaneColumnViewModel.AddRemoteTab).
+        private void NavigateToRemoteHistoryEntry(RemoteHistoryEntry? entry)
+        {
+            if (entry == null) return;
+
+            if (ActivePane != null && ActivePane.IsRemote && ActivePane.Site?.Id == entry.SiteId)
+            {
+                _ = ActivePane.NavigateAsync(entry.RemotePath);
+                return;
+            }
+
+            var site = SiteManagerComponent.Load().FirstOrDefault(s => s.Id == entry.SiteId);
+            if (site == null)
+            {
+                AppServices.Toast.Error($"Site '{entry.SiteName}' no longer exists");
+                return;
+            }
+
+            _activeColumn.AddRemoteTab(site, entry.RemotePath);
         }
 
         private bool CanPasteFromClipboard()

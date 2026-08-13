@@ -91,6 +91,33 @@
                 </StackPanel>
             </Grid>
         </DataTemplate>
+
+        <DataTemplate x:Key="RemoteHistoryEntryTemplate" DataType="{x:Type models:RemoteHistoryEntry}">
+            <Grid ToolTip="{Binding SiteAndPath}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <iconPacks:PackIconMaterial Grid.Column="0"
+                                            Kind="Server"
+                                            Foreground="{StaticResource Brush.RowFolder}"
+                                            Width="14" Height="14"
+                                            Margin="0,0,8,0"
+                                            VerticalAlignment="Center"/>
+
+                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding DisplayName}"
+                               FontSize="12.5"
+                               Foreground="{StaticResource Brush.OnSurface}"
+                               TextTrimming="CharacterEllipsis"/>
+                    <TextBlock Text="{Binding SiteAndPath}"
+                               FontSize="10"
+                               Foreground="{StaticResource Brush.OnSurfaceMuted}"
+                               TextTrimming="CharacterEllipsis"/>
+                </StackPanel>
+            </Grid>
+        </DataTemplate>
     </UserControl.Resources>
 
     <Border Background="{StaticResource Brush.SurfaceMuted}"
@@ -142,6 +169,7 @@
                   Grid.Row="1"
                   Visibility="{Binding IsExpanded, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolToVis}}">
                 <Grid.RowDefinitions>
+                    <RowDefinition Height="*"/>
                     <RowDefinition Height="*"/>
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
@@ -212,6 +240,40 @@
                         <TextBlock Text="No directories visited yet"
                                    Style="{StaticResource EmptyStateStyle}"
                                    Visibility="{Binding MostVisitedHistory.Count, Converter={StaticResource ZeroToVisible}}"/>
+                    </Grid>
+                </DockPanel>
+            </Border>
+
+            <Border Grid.Row="2"
+                    Margin="10,5,10,10"
+                    BorderBrush="{StaticResource Brush.Outline}"
+                    BorderThickness="1"
+                    CornerRadius="6"
+                    Background="{StaticResource Brush.SurfaceElevated}">
+                <DockPanel LastChildFill="True" Margin="8">
+                    <DockPanel.Resources>
+                        <Style TargetType="TextBlock" BasedOn="{StaticResource SectionHeaderStyle}"/>
+                    </DockPanel.Resources>
+                    <Border DockPanel.Dock="Top" Margin="0,0,0,6">
+                        <StackPanel Orientation="Horizontal">
+                            <iconPacks:PackIconMaterial Kind="Server"
+                                                        Width="13" Height="13"
+                                                        Margin="0,0,6,0"
+                                                        Foreground="{StaticResource Brush.OnSurfaceSubtle}"/>
+                            <TextBlock Text="REMOTE DIRECTORIES"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Grid>
+                        <ListBox x:Name="RemoteHistoryList"
+                                 Style="{StaticResource HistoryListBoxStyle}"
+                                 ItemsSource="{Binding RemoteDirectoryHistory}"
+                                 ItemTemplate="{StaticResource RemoteHistoryEntryTemplate}"
+                                 MouseDoubleClick="OnRowDoubleClick"
+                                 KeyDown="OnListKeyDown"/>
+                        <TextBlock Text="No remote directories visited yet"
+                                   Style="{StaticResource EmptyStateStyle}"
+                                   Visibility="{Binding RemoteDirectoryHistory.Count, Converter={StaticResource ZeroToVisible}}"/>
                     </Grid>
                 </DockPanel>
             </Border>

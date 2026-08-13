@@ -54,10 +54,17 @@ namespace Josha.Views
 
         private void NavigateToSelected(ListBox? list)
         {
-            if (list?.SelectedItem is not NavigationHistoryEntry entry) return;
             if (DataContext is not AppShellViewModel shell) return;
 
-            shell.NavigateToHistoryEntryCommand.Execute(entry);
+            switch (list?.SelectedItem)
+            {
+                case NavigationHistoryEntry entry:
+                    shell.NavigateToHistoryEntryCommand.Execute(entry);
+                    break;
+                case RemoteHistoryEntry remoteEntry:
+                    shell.NavigateToRemoteHistoryEntryCommand.Execute(remoteEntry);
+                    break;
+            }
         }
 
         private void OnRowPreviewMouseRightButtonUp(object sender, MouseButtonEventArgs e)
