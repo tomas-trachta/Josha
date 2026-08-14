@@ -653,6 +653,15 @@ namespace Josha.ViewModels
                     if (Site != null)
                         AppServices.RemoteHistory.RecordVisit(Site.Id, Site.Name, full);
                 }
+                else if (TryGetUncHost(full, out var host))
+                {
+                    // Bare UNC/SMB paths (\\host\...) have no Site — they're browsed
+                    // through the local provider — but should still show up under
+                    // "Remote directories", not the plain local history. There's no
+                    // saved FtpSite to key off, so derive a stable id from the host
+                    // name itself (same host -> same id across sessions).
+                    AppServices.RemoteHistory.RecordVisit(DeterministicGuidForHost(host), host, full);
+                }
                 else
                 {
                     AppServices.History.RecordVisit(full);
@@ -689,6 +698,26 @@ namespace Josha.ViewModels
                 (host.Contains('.') && host[0] != '.' && host[^1] != '.');
 
             return looksLikeHost ? @"\\" + s.Replace('/', '\\') : input;
+        }
+
+        private static bool TryGetUncHost(string path, out string host)
+        {
+            host = "";
+            if (!path.StartsWith(@"\\", StringComparison.Ordinal)) return false;
+
+            var rest = path[2..];
+            var sep = rest.IndexOf('\\');
+            host = sep < 0 ? rest : rest[..sep];
+            return host.Length > 0;
+        }
+
+        // Stable per-host id so the same SMB host maps to the same
+        // "Remote directories" entry across sessions without a saved FtpSite.
+        private static Guid DeterministicGuidForHost(string host)
+        {
+            var bytes = System.Security.Cryptography.MD5.HashData(
+                System.Text.Encoding.UTF8.GetBytes(host.ToLowerInvariant()));
+            return new Guid(bytes);
         }
 
         private Task GoBackAsync()

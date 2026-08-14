@@ -311,6 +311,16 @@ namespace Josha.ViewModels
         {
             if (entry == null) return;
 
+            // UNC/SMB entries (\\host\...) have no saved FtpSite backing them —
+            // they're browsed through the local provider — so just navigate the
+            // active pane straight to the path instead of resolving a site.
+            if (entry.RemotePath.StartsWith(@"\\", StringComparison.Ordinal))
+            {
+                if (ActivePane != null)
+                    _ = ActivePane.NavigateAsync(entry.RemotePath);
+                return;
+            }
+
             if (ActivePane != null && ActivePane.IsRemote && ActivePane.Site?.Id == entry.SiteId)
             {
                 _ = ActivePane.NavigateAsync(entry.RemotePath);

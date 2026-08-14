@@ -16,8 +16,8 @@ namespace Josha.Models
         {
             get
             {
-                var trimmed = RemotePath.TrimEnd('/');
-                var i = trimmed.LastIndexOf('/');
+                var trimmed = RemotePath.TrimEnd('/', '\\');
+                var i = trimmed.LastIndexOfAny(['/', '\\']);
                 var leaf = i >= 0 ? trimmed[(i + 1)..] : trimmed;
                 return string.IsNullOrEmpty(leaf) ? RemotePath : leaf;
             }

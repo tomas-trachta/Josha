@@ -28,7 +28,7 @@ namespace Josha.Services
 
         public void RecordVisit(Guid siteId, string siteName, string path)
         {
-            var normalized = path.TrimEnd('/');
+            var normalized = path.TrimEnd('/', '\\');
             if (string.IsNullOrEmpty(normalized)) normalized = "/";
 
             var existing = _entries.FirstOrDefault(e =>
