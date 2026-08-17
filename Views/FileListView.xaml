@@ -23,20 +23,37 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="GridViewColumnHeader">
-                        <Border x:Name="Bd"
-                                Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}">
-                            <ContentPresenter Margin="{TemplateBinding Padding}"
-                                              HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
-                                              VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
-                        </Border>
+                        <Grid>
+                            <Border x:Name="Bd"
+                                    Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}">
+                                <ContentPresenter Margin="{TemplateBinding Padding}"
+                                                  HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                                  VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
+                            </Border>
+                            <Thumb x:Name="PART_HeaderGripper"
+                                   HorizontalAlignment="Right"
+                                   Width="18"
+                                   Margin="0,0,-9,0"
+                                   Cursor="SizeWE"
+                                   Background="Transparent">
+                                <Thumb.Template>
+                                    <ControlTemplate TargetType="Thumb">
+                                        <Border Background="Transparent"/>
+                                    </ControlTemplate>
+                                </Thumb.Template>
+                            </Thumb>
+                        </Grid>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter TargetName="Bd" Property="Background" Value="{StaticResource Brush.SurfaceHover}"/>
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
                                 <Setter TargetName="Bd" Property="Background" Value="{StaticResource Brush.SurfacePressed}"/>
+                            </Trigger>
+                            <Trigger Property="Role" Value="Padding">
+                                <Setter TargetName="PART_HeaderGripper" Property="Visibility" Value="Collapsed"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -119,7 +136,8 @@
                   MouseMove="OnListMouseMove"
                   PreviewMouseRightButtonUp="OnListPreviewMouseRightButtonUp">
             <ListView.View>
-                <GridView ColumnHeaderContainerStyle="{StaticResource ListColumnHeaderStyle}">
+                <GridView ColumnHeaderContainerStyle="{StaticResource ListColumnHeaderStyle}"
+                          AllowsColumnReorder="False">
                     <GridViewColumn Width="320">
                         <GridViewColumn.Header>
                             <GridViewColumnHeader Tag="Name" Content="Name"/>
@@ -199,6 +217,14 @@
                 </GridView>
             </ListView.View>
         </ListView>
+
+        <Canvas Grid.Row="1" IsHitTestVisible="False" ClipToBounds="True">
+            <Border x:Name="SelectionBox"
+                    Visibility="Collapsed"
+                    Background="{StaticResource Brush.AccentSubtle}"
+                    BorderBrush="{StaticResource Brush.Accent}"
+                    BorderThickness="1"/>
+        </Canvas>
 
         <Border Grid.Row="2"
                 Background="{StaticResource Brush.SurfaceMuted}"

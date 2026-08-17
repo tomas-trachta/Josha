@@ -13,7 +13,10 @@ namespace Josha.ViewModels
 {
     internal class AppShellViewModel : BaseViewModel
     {
-        private string _statusText = "Ready";
+        private const string ReadyStatus = "Ready";
+
+        private string _statusText = ReadyStatus;
+        private readonly DispatcherTimer _statusResetTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(4) };
         private string _clock = "";
         private PaneColumnViewModel _activeColumn;
 
@@ -44,7 +47,18 @@ namespace Josha.ViewModels
         public string StatusText
         {
             get => _statusText;
-            set { if (_statusText == value) return; _statusText = value; OnPropertyChanged(); }
+            set
+            {
+                if (_statusText == value) return;
+                _statusText = value;
+                OnPropertyChanged();
+
+                // Every non-"Ready" status restarts the countdown, so it only
+                // reverts once the bar has actually been idle for a while.
+                _statusResetTimer.Stop();
+                if (value != ReadyStatus)
+                    _statusResetTimer.Start();
+            }
         }
 
         public string Clock
@@ -153,6 +167,12 @@ namespace Josha.ViewModels
             // ActiveColumn.ActiveTab — re-fire them whenever a tab changes.
             LeftColumn.PropertyChanged  += OnColumnPropertyChanged;
             RightColumn.PropertyChanged += OnColumnPropertyChanged;
+
+            _statusResetTimer.Tick += (_, _) =>
+            {
+                _statusResetTimer.Stop();
+                StatusText = ReadyStatus;
+            };
 
             Clock = DateTime.Now.ToString("HH:mm");
             var clockTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(30) };

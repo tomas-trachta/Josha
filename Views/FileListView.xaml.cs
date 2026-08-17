@@ -2,6 +2,7 @@ using Josha.Business;
 using Josha.Services;
 using Josha.ViewModels;
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
@@ -77,14 +78,15 @@ namespace Josha.Views
             _columnHooksAttached = true;
 
             // User-resizing any other column re-flows the Name column so the
-            // row keeps filling the pane.
-            var widthDpd = DependencyPropertyDescriptor.FromProperty(
-                GridViewColumn.WidthProperty, typeof(GridViewColumn));
-            if (widthDpd != null)
-            {
-                for (int i = 1; i < gv.Columns.Count; i++)
-                    widthDpd.AddValueChanged(gv.Columns[i], (_, _) => StretchNameColumn());
-            }
+            // row keeps filling the pane. Hooked to DragCompleted (not the
+            // Width property changing on every drag tick) because Name sits
+            // to the left of every other column: rebalancing it mid-drag
+            // shifts their on-screen position by the same delta the user is
+            // dragging, fighting the cursor. Waiting for the gripper drag to
+            // finish keeps the live resize 1:1 and only reflows Name once,
+            // after the fact.
+            MainList.AddHandler(System.Windows.Controls.Primitives.Thumb.DragCompletedEvent,
+                new System.Windows.Controls.Primitives.DragCompletedEventHandler((_, _) => StretchNameColumn()));
 
             // Defer the first stretch to after layout has settled, otherwise
             // ActualWidth still reports the GridView's intrinsic content size
@@ -399,9 +401,22 @@ namespace Josha.Views
             var src = e.OriginalSource as DependencyObject;
             var container = ItemsControl.ContainerFromElement(MainList, src) as ListViewItem;
             if (container?.Content is FileRowViewModel)
+            {
                 _dragStart = e.GetPosition(null);
+                _selectionStart = null;
+            }
             else
+            {
                 _dragStart = null;
+
+                // A marquee only makes sense starting from empty list space —
+                // not from the header row or the scrollbar.
+                if (FindAncestor<GridViewColumnHeader>(src) == null &&
+                    FindAncestor<System.Windows.Controls.Primitives.ScrollBar>(src) == null)
+                {
+                    _selectionStart = e.GetPosition(MainList);
+                }
+            }
 
             // Clicking the empty area below/beside the rows doesn't move
             // keyboard focus off the rename TextBox (nothing focusable is
@@ -416,11 +431,32 @@ namespace Josha.Views
         private void OnListPreviewMouseUp(object sender, MouseButtonEventArgs e)
         {
             _dragStart = null;
+
+            // A plain click (not a marquee drag) on empty list space clears
+            // the selection, same as Explorer. Ctrl/Shift click on empty
+            // space is left as a no-op rather than wiping the selection.
+            bool plainEmptyClick = _selectionStart != null && !_isSelecting;
+            EndSelectionDrag();
+
+            if (plainEmptyClick && (Keyboard.Modifiers & (ModifierKeys.Control | ModifierKeys.Shift)) == 0)
+                ApplyProgrammaticSelection((row, _) => false);
         }
 
         private void OnListMouseMove(object sender, MouseEventArgs e)
         {
-            if (_dragStart == null || e.LeftButton != MouseButtonState.Pressed) return;
+            if (e.LeftButton != MouseButtonState.Pressed)
+            {
+                EndSelectionDrag();
+                return;
+            }
+
+            if (_selectionStart != null)
+            {
+                HandleSelectionDrag(e);
+                return;
+            }
+
+            if (_dragStart == null) return;
 
             var pos = e.GetPosition(null);
             if (Math.Abs(pos.X - _dragStart.Value.X) < SystemParameters.MinimumHorizontalDragDistance &&
@@ -450,6 +486,73 @@ namespace Josha.Views
             {
                 Log.Warn("FileList", "Drag-drop source failed", ex);
             }
+        }
+
+        private Point? _selectionStart;
+        private bool _isSelecting;
+        private HashSet<FileRowViewModel>? _selectionSnapshot;
+
+        // Windows-style marquee select: click-drag from empty list space draws
+        // a rectangle and selects every row it overlaps. Holding Ctrl/Shift
+        // extends the pre-drag selection (toggling overlapped rows) instead
+        // of replacing it, matching Explorer.
+        private void HandleSelectionDrag(MouseEventArgs e)
+        {
+            if (DataContext is not FileListViewModel vm) return;
+
+            var pos = e.GetPosition(MainList);
+
+            if (!_isSelecting)
+            {
+                if (Math.Abs(pos.X - _selectionStart!.Value.X) < SystemParameters.MinimumHorizontalDragDistance &&
+                    Math.Abs(pos.Y - _selectionStart.Value.Y) < SystemParameters.MinimumVerticalDragDistance)
+                    return;
+
+                _isSelecting = true;
+                _selectionSnapshot = vm.SelectedRows.ToHashSet();
+                MainList.CaptureMouse();
+                SelectionBox.Visibility = Visibility.Visible;
+            }
+
+            var rect = new Rect(_selectionStart!.Value, pos);
+            Canvas.SetLeft(SelectionBox, rect.X);
+            Canvas.SetTop(SelectionBox, rect.Y);
+            SelectionBox.Width = rect.Width;
+            SelectionBox.Height = rect.Height;
+
+            bool extend = (Keyboard.Modifiers & (ModifierKeys.Control | ModifierKeys.Shift)) != 0;
+            ApplyProgrammaticSelection((row, _) =>
+            {
+                if (row.IsParentLink) return false;
+
+                bool intersects = RowIntersects(row, rect);
+                if (!extend) return intersects;
+
+                bool wasSelected = _selectionSnapshot!.Contains(row);
+                return wasSelected ^ intersects;
+            });
+        }
+
+        private bool RowIntersects(FileRowViewModel row, Rect rect)
+        {
+            if (MainList.ItemContainerGenerator.ContainerFromItem(row) is not ListViewItem container ||
+                !container.IsVisible)
+                return false;
+
+            var topLeft = container.TransformToAncestor(MainList).Transform(new Point(0, 0));
+            var bounds = new Rect(topLeft, new Size(container.ActualWidth, container.ActualHeight));
+            return bounds.IntersectsWith(rect);
+        }
+
+        private void EndSelectionDrag()
+        {
+            _selectionStart = null;
+            _selectionSnapshot = null;
+            if (!_isSelecting) return;
+
+            _isSelecting = false;
+            if (MainList.IsMouseCaptured) MainList.ReleaseMouseCapture();
+            SelectionBox.Visibility = Visibility.Collapsed;
         }
 
         private void OnSelectionChanged(object sender, SelectionChangedEventArgs e)
