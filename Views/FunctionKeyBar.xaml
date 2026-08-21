@@ -47,6 +47,11 @@
                     Style="{StaticResource SecondaryButtonStyle}"
                     Margin="2"
                     ToolTip="Move selected items to the Recycle Bin (Delete / F8)"/>
+            <Button Content="Git (Ctrl+G)"
+                    Command="{Binding ShowGitHistoryCommand}"
+                    Style="{StaticResource SecondaryButtonStyle}"
+                    Margin="2"
+                    ToolTip="Browse git log / diff for the active folder (Ctrl+G)"/>
             <Button Content="F10 Quit"
                     Click="OnQuit"
                     Style="{StaticResource SecondaryButtonStyle}"

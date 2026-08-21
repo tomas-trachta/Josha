@@ -59,6 +59,10 @@
     <SolidColorBrush x:Key="Brush.TreeBorderInactive" Color="#FF21262D"/>
     <SolidColorBrush x:Key="Brush.TreeBorderActive"   Color="#FF2F81F7"/>
 
+    <!-- Diff side-by-side row highlighting. -->
+    <SolidColorBrush x:Key="Brush.Diff.AddedBg"      Color="#FF1B2E20"/>
+    <SolidColorBrush x:Key="Brush.Diff.RemovedBg"    Color="#FF2E1B1E"/>
+
     <DropShadowEffect x:Key="Elevation.1"
                       Color="#000000" BlurRadius="6" ShadowDepth="1"
                       Opacity="0.08" Direction="270"/>
@@ -459,7 +463,8 @@
                                                               ContentTemplateSelector="{Binding ItemTemplateSelector, RelativeSource={RelativeSource AncestorType=ComboBox}}"
                                                               HorizontalAlignment="Left" VerticalAlignment="Center"
                                                               Margin="12,0,0,0"
-                                                              TextElement.FontFamily="{Binding FontFamily, RelativeSource={RelativeSource AncestorType=ComboBox}}"/>
+                                                              TextElement.FontFamily="{Binding FontFamily, RelativeSource={RelativeSource AncestorType=ComboBox}}"
+                                                              TextElement.Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=ComboBox}}"/>
                                             <TextBlock x:Name="Chevron"
                                                        Grid.Column="1"
                                                        Text="&#xE70D;"

@@ -57,4 +57,7 @@
     <SolidColorBrush x:Key="Brush.TreeBorderInactive" Color="#FFEAEEF2"/>
     <SolidColorBrush x:Key="Brush.TreeBorderActive"   Color="#FF0969DA"/>
 
+    <SolidColorBrush x:Key="Brush.Diff.AddedBg"      Color="#FFDAFBE1"/>
+    <SolidColorBrush x:Key="Brush.Diff.RemovedBg"    Color="#FFFFEBE9"/>
+
 </ResourceDictionary>

@@ -1,0 +1,400 @@
+<Window x:Class="Josha.Views.GitHistoryWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="clr-namespace:Josha.ViewModels"
+        mc:Ignorable="d"
+        Title="Git"
+        Width="1200" Height="760"
+        MinWidth="720" MinHeight="480"
+        WindowStartupLocation="CenterOwner"
+        WindowState="Maximized"
+        Background="{StaticResource Brush.Surface}"
+        Foreground="{StaticResource Brush.OnSurface}"
+        FontFamily="{DynamicResource Font.Body}"
+        d:DataContext="{d:DesignInstance Type=vm:GitHistoryWindowViewModel}">
+    <Window.InputBindings>
+        <KeyBinding Key="Escape" Command="ApplicationCommands.Close"/>
+    </Window.InputBindings>
+    <Window.CommandBindings>
+        <CommandBinding Command="ApplicationCommands.Close" Executed="OnCloseCommand"/>
+    </Window.CommandBindings>
+
+    <Window.Resources>
+        <Style x:Key="GitListItemStyle" TargetType="ListBoxItem">
+            <Setter Property="Padding" Value="10,6"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0,0,0,1"/>
+            <Setter Property="BorderBrush" Value="{StaticResource Brush.OutlineSubtle}"/>
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Border x:Name="Bd"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                Padding="{TemplateBinding Padding}"
+                                SnapsToDevicePixels="True">
+                            <ContentPresenter/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{StaticResource Brush.SurfaceHover}"/>
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{StaticResource Brush.AccentSubtle}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="DiffSplitterStyle" TargetType="GridSplitter">
+            <Setter Property="Background" Value="{StaticResource Brush.Splitter}"/>
+            <Setter Property="ResizeBehavior" Value="PreviousAndNext"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Toolbar: branch selector + repo path + refresh -->
+        <Border Grid.Row="0"
+                Style="{StaticResource ToolbarSurfaceStyle}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="220"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Grid.Column="0" Text="Branch" Style="{StaticResource ToolbarCaptionStyle}"/>
+
+                <ComboBox Grid.Column="1"
+                          Style="{StaticResource ModernComboBoxStyle}"
+                          ItemsSource="{Binding Branches}"
+                          SelectedItem="{Binding SelectedBranch}"
+                          DisplayMemberPath="DisplayName"/>
+
+                <TextBlock Grid.Column="2"
+                           Text="{Binding RepoRoot}"
+                           VerticalAlignment="Center"
+                           Margin="16,0,0,0"
+                           FontSize="12"
+                           Foreground="{StaticResource Brush.OnSurfaceMuted}"
+                           TextTrimming="CharacterEllipsis"/>
+
+                <Button Grid.Column="3"
+                        Content="Refresh"
+                        Command="{Binding RefreshCommand}"
+                        Style="{StaticResource SecondaryButtonStyle}"
+                        Padding="12,0"/>
+            </Grid>
+        </Border>
+
+        <!-- Commits (top) / message body (if any) / files + diff (bottom) -->
+        <Grid Grid.Row="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="2*" MinHeight="120"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="3*" MinHeight="200"/>
+            </Grid.RowDefinitions>
+
+            <Grid Grid.Row="0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <Border Grid.Row="0" Padding="6,4"
+                        Background="{StaticResource Brush.Surface}"
+                        BorderBrush="{StaticResource Brush.OutlineSubtle}"
+                        BorderThickness="0,0,0,1">
+                    <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                             Style="{StaticResource SearchTextBoxStyle}"
+                             Tag="Search commits by hash or message"
+                             MinHeight="26"/>
+                </Border>
+
+                <ProgressBar Grid.Row="1"
+                             Height="2"
+                             BorderThickness="0"
+                             IsIndeterminate="True"
+                             Foreground="{StaticResource Brush.Accent}"
+                             Background="Transparent"
+                             Visibility="{Binding IsLoadingLog, Converter={StaticResource BoolToVis}}"/>
+
+                <ListBox Grid.Row="2"
+                         ItemsSource="{Binding CommitsView}"
+                         SelectedItem="{Binding SelectedCommit}"
+                         ItemContainerStyle="{StaticResource GitListItemStyle}"
+                         Background="{StaticResource Brush.Surface}"
+                         Foreground="{StaticResource Brush.OnSurface}"
+                         BorderThickness="0"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                         VirtualizingPanel.IsVirtualizing="True"
+                         VirtualizingPanel.VirtualizationMode="Recycling">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="72"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <TextBlock Grid.Column="0"
+                                           Text="{Binding ShortHash}"
+                                           FontFamily="Cascadia Mono, Consolas"
+                                           FontSize="12"
+                                           Foreground="{StaticResource Brush.Accent}"
+                                           VerticalAlignment="Center"/>
+
+                                <TextBlock Grid.Column="1"
+                                           Text="{Binding Subject}"
+                                           VerticalAlignment="Center"
+                                           Margin="8,0"
+                                           Foreground="{StaticResource Brush.OnSurface}"
+                                           TextTrimming="CharacterEllipsis"/>
+
+                                <StackPanel Grid.Column="2" Orientation="Horizontal">
+                                    <TextBlock Text="{Binding AuthorName}"
+                                               FontSize="11"
+                                               Foreground="{StaticResource Brush.OnSurfaceMuted}"
+                                               VerticalAlignment="Center"/>
+                                    <TextBlock Text="{Binding DateDisplay}"
+                                               FontSize="11"
+                                               Margin="10,0,0,0"
+                                               Foreground="{StaticResource Brush.OnSurfaceSubtle}"
+                                               VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Grid>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </Grid>
+
+            <!-- Full commit message — only takes space when the selected
+                 commit actually has a body beyond its subject line. -->
+            <Border Grid.Row="1"
+                    Padding="12,8"
+                    MaxHeight="160"
+                    Background="{StaticResource Brush.SurfaceMuted}"
+                    BorderBrush="{StaticResource Brush.OutlineSubtle}"
+                    BorderThickness="0,0,0,1"
+                    Visibility="{Binding SelectedCommit.Body, Converter={StaticResource StrNotEmptyToVis}}">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Foreground="{StaticResource Brush.OnSurface}">
+                    <StackPanel>
+                        <TextBlock Text="{Binding SelectedCommit.Subject}"
+                                   FontWeight="SemiBold"
+                                   TextWrapping="Wrap"
+                                   Foreground="{StaticResource Brush.OnSurface}"
+                                   Margin="0,0,0,6"/>
+                        <TextBlock Text="{Binding SelectedCommit.Body}"
+                                   TextWrapping="Wrap"
+                                   FontFamily="Cascadia Mono, Consolas"
+                                   FontSize="12"
+                                   Foreground="{StaticResource Brush.OnSurfaceMuted}"/>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+
+            <GridSplitter Grid.Row="2" Height="6" HorizontalAlignment="Stretch" Style="{StaticResource DiffSplitterStyle}"/>
+
+            <Grid Grid.Row="3">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="260" MinWidth="160"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Changed files for the selected commit -->
+                <ListBox Grid.Column="0"
+                         ItemsSource="{Binding ChangedFiles}"
+                         SelectedItem="{Binding SelectedFile}"
+                         ItemContainerStyle="{StaticResource GitListItemStyle}"
+                         Background="{StaticResource Brush.SurfaceMuted}"
+                         Foreground="{StaticResource Brush.OnSurface}"
+                         BorderThickness="0"
+                         ToolTip="Double-click to open this file's version from this commit in its default app"
+                         MouseDoubleClick="OnChangedFileDoubleClick"
+                         PreviewMouseRightButtonDown="OnChangedFileRightButtonDown"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                    <ListBox.ContextMenu>
+                        <ContextMenu Style="{StaticResource ModernContextMenuStyle}">
+                            <MenuItem Header="Open"
+                                      Style="{StaticResource ModernMenuItemStyle}"
+                                      Command="{Binding PlacementTarget.DataContext.OpenFileCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"/>
+                            <MenuItem Header="Open with..."
+                                      Style="{StaticResource ModernMenuItemStyle}"
+                                      Click="OnOpenFileWithClick"/>
+                        </ContextMenu>
+                    </ListBox.ContextMenu>
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="{Binding StatusGlyph}"
+                                           FontWeight="SemiBold"
+                                           FontFamily="Cascadia Mono, Consolas"
+                                           Width="16"
+                                           Foreground="{Binding StatusBrushKey, Converter={StaticResource ResKeyToBrush}}"
+                                           VerticalAlignment="Center"/>
+                                <TextBlock Text="{Binding DisplayPath}"
+                                           Margin="4,0,0,0"
+                                           VerticalAlignment="Center"
+                                           Foreground="{StaticResource Brush.OnSurface}"
+                                           TextTrimming="CharacterEllipsis"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+
+                <GridSplitter Grid.Column="1" Width="6" VerticalAlignment="Stretch" Style="{StaticResource DiffSplitterStyle}"/>
+
+                <!-- Side-by-side diff for the selected file -->
+                <Grid Grid.Column="2">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <Border Grid.Row="0"
+                            Background="{StaticResource Brush.SurfaceMuted}"
+                            BorderBrush="{StaticResource Brush.OutlineSubtle}"
+                            BorderThickness="0,0,0,1"
+                            Padding="10,6">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock Grid.Column="0"
+                                       Text="{Binding SelectedFile.DisplayPath}"
+                                       FontFamily="Cascadia Mono, Consolas"
+                                       FontSize="12"
+                                       VerticalAlignment="Center"
+                                       Foreground="{StaticResource Brush.OnSurface}"
+                                       TextTrimming="CharacterEllipsis"/>
+
+                            <ToggleButton Grid.Column="1"
+                                          Content="Expand full file"
+                                          IsChecked="{Binding ShowFullFile}"
+                                          Style="{StaticResource ToolbarToggleButtonStyle}"
+                                          Padding="10,0"
+                                          MinHeight="24"
+                                          FontSize="11"
+                                          Margin="10,0,0,0"
+                                          ToolTip="Show the whole file with these changes highlighted, instead of just a few lines of context"/>
+                        </Grid>
+                    </Border>
+
+                    <ProgressBar Grid.Row="1"
+                                 Height="2"
+                                 BorderThickness="0"
+                                 IsIndeterminate="True"
+                                 Foreground="{StaticResource Brush.Accent}"
+                                 Background="Transparent"
+                                 Visibility="{Binding IsLoadingDiff, Converter={StaticResource BoolToVis}}"/>
+
+                    <TextBlock Grid.Row="2"
+                               Text="{Binding DiffMessage}"
+                               Visibility="{Binding DiffMessage, Converter={StaticResource StrNotEmptyToVis}}"
+                               Foreground="{StaticResource Brush.OnSurfaceMuted}"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center"
+                               FontSize="13"/>
+
+                    <ScrollViewer Grid.Row="2"
+                                  Background="{StaticResource Brush.Surface}"
+                                  Foreground="{StaticResource Brush.OnSurface}"
+                                  HorizontalScrollBarVisibility="Disabled"
+                                  VerticalScrollBarVisibility="Auto">
+                        <ItemsControl ItemsSource="{Binding DiffRows}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid>
+                                        <Border Padding="10,3"
+                                                Background="{StaticResource Brush.AccentSubtle}"
+                                                Visibility="{Binding IsHunkHeader, Converter={StaticResource BoolToVis}}">
+                                            <TextBlock Text="{Binding HeaderText}"
+                                                       FontFamily="Cascadia Mono, Consolas"
+                                                       FontSize="11"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="{StaticResource Brush.Accent}"/>
+                                        </Border>
+
+                                        <Grid Visibility="{Binding IsHunkHeader, Converter={StaticResource InvBoolToVis}}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="42"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="42"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+
+                                            <Border Grid.Column="0" Background="{Binding OldBackgroundKey, Converter={StaticResource ResKeyToBrush}}">
+                                                <TextBlock Text="{Binding OldLineNumber}"
+                                                           HorizontalAlignment="Right"
+                                                           Padding="0,1,6,1"
+                                                           FontFamily="Cascadia Mono, Consolas"
+                                                           FontSize="11"
+                                                           Foreground="{StaticResource Brush.OnSurfaceSubtle}"/>
+                                            </Border>
+                                            <Border Grid.Column="1" Background="{Binding OldBackgroundKey, Converter={StaticResource ResKeyToBrush}}">
+                                                <TextBlock Text="{Binding OldText}"
+                                                           Padding="6,1"
+                                                           TextWrapping="Wrap"
+                                                           FontFamily="Cascadia Mono, Consolas"
+                                                           FontSize="12"
+                                                           Foreground="{StaticResource Brush.OnSurface}"/>
+                                            </Border>
+                                            <Border Grid.Column="2" Background="{Binding NewBackgroundKey, Converter={StaticResource ResKeyToBrush}}">
+                                                <TextBlock Text="{Binding NewLineNumber}"
+                                                           HorizontalAlignment="Right"
+                                                           Padding="0,1,6,1"
+                                                           FontFamily="Cascadia Mono, Consolas"
+                                                           FontSize="11"
+                                                           Foreground="{StaticResource Brush.OnSurfaceSubtle}"/>
+                                            </Border>
+                                            <Border Grid.Column="3" Background="{Binding NewBackgroundKey, Converter={StaticResource ResKeyToBrush}}">
+                                                <TextBlock Text="{Binding NewText}"
+                                                           Padding="6,1"
+                                                           TextWrapping="Wrap"
+                                                           FontFamily="Cascadia Mono, Consolas"
+                                                           FontSize="12"
+                                                           Foreground="{StaticResource Brush.OnSurface}"/>
+                                            </Border>
+                                        </Grid>
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </Grid>
+            </Grid>
+        </Grid>
+
+        <Border Grid.Row="2"
+                Background="{StaticResource Brush.SurfaceMuted}"
+                BorderBrush="{StaticResource Brush.OutlineSubtle}"
+                BorderThickness="0,1,0,0"
+                Padding="10,4">
+            <TextBlock Text="{Binding StatusText}"
+                       FontSize="11"
+                       Foreground="{StaticResource Brush.OnSurfaceMuted}"/>
+        </Border>
+    </Grid>
+</Window>

@@ -69,6 +69,13 @@ namespace Josha
                 viewer.Show();
             };
 
+            _shell.GitHistoryRequested = repoRoot =>
+            {
+                var gitWindow = new GitHistoryWindow { Owner = this };
+                gitWindow.Load(repoRoot);
+                gitWindow.Show();
+            };
+
             _shell.PatternPromptRequested = label =>
             {
                 var dlg = new PatternPromptDialog(label) { Owner = this };

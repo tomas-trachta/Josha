@@ -1,4 +1,5 @@
 using Josha.Business;
+using Josha.Business.Git;
 using Josha.Models;
 using Josha.Services;
 using System.Collections.ObjectModel;
@@ -101,11 +102,16 @@ namespace Josha.ViewModels
         public ICommand DeselectByPatternCommand { get; }
         public ICommand InvertSelectionCommand { get; }
         public ICommand TogglePreviewPaneCommand { get; }
+        public ICommand ShowGitHistoryCommand { get; }
 
         // MainWindow wires this — VM raises a ("title", localPathToView) request,
         // shell shows the InternalViewer modal with that file. Same Func-as-event
         // pattern as OverwriteResolver.
         public Action<string, string>? ViewFileRequested { get; set; }
+
+        // MainWindow wires this — VM raises a (repoRoot) request once it has
+        // confirmed ActivePane sits inside a git working tree.
+        public Action<string>? GitHistoryRequested { get; set; }
 
         // For pattern select / deselect — MainWindow renders a small prompt
         // modal and returns the typed pattern (or null on cancel).
@@ -203,6 +209,7 @@ namespace Josha.ViewModels
             ViewCommand              = new RelayCommand(_ => _ = ViewSelectedAsync(), _ => HasSingleFileSelection());
             SelectByPatternCommand   = new RelayCommand(_ => ApplyPattern(select: true),  _ => ActivePane != null && ActivePane.CurrentMode == ViewMode.List);
             DeselectByPatternCommand = new RelayCommand(_ => ApplyPattern(select: false), _ => ActivePane != null && ActivePane.CurrentMode == ViewMode.List);
+            ShowGitHistoryCommand    = new RelayCommand(_ => ShowGitHistory(), _ => ActivePane != null && !ActivePane.IsRemote);
             InvertSelectionCommand   = new RelayCommand(_ => InvertSelection(),           _ => ActivePane != null && ActivePane.CurrentMode == ViewMode.List);
             TogglePreviewPaneCommand = new RelayCommand(_ => { if (ActivePane != null) ActivePane.IsPreviewPaneVisible = !ActivePane.IsPreviewPaneVisible; }, _ => ActivePane != null);
             OpenSettingsCommand      = new RelayCommand(_ => SettingsRequested?.Invoke());
@@ -589,6 +596,19 @@ namespace Josha.ViewModels
             ViewFileRequested?.Invoke(row.Name, localPath);
         }
 
+        private void ShowGitHistory()
+        {
+            if (ActivePane == null || ActivePane.IsRemote) return;
+
+            if (!GitComponent.TryFindRepositoryRoot(ActivePane.CurrentPath, out var repoRoot))
+            {
+                AppServices.Toast.Warning("This folder isn't inside a git repository.");
+                return;
+            }
+
+            GitHistoryRequested?.Invoke(repoRoot);
+        }
+
         private void ApplyPattern(bool select)
         {
             if (ActivePane == null) return;
@@ -695,6 +715,7 @@ namespace Josha.ViewModels
             AddCmd("New file",             NewFileCommand,             "Shift+F4");
             AddCmd("Rename",               RenameCommand,              "F2");
             AddCmd("View file",            ViewCommand,                "F3");
+            AddCmd("Git history",          ShowGitHistoryCommand,      "Ctrl+G");
             AddCmd("Edit in external editor", EditCommand,             "F4");
             AddCmd("Move to Recycle Bin",  DeleteRecycleCommand,       "F8");
             AddCmd("Permanent delete",     DeletePermanentCommand,     "Shift+F8");
