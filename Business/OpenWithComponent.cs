@@ -1,7 +1,7 @@
 using Josha.Services;
 using System;
 using System.Collections.Generic;
-using System.Collections.Specialized;
+using System.Diagnostics;
 using System.Linq;
 using System.Windows;
 using System.Windows.Interop;
@@ -91,33 +91,30 @@ namespace Josha.Business
             }
         }
 
-        // Passes every path in one IDataObject (CF_HDROP) — the same as
-        // selecting multiple files in Explorer and choosing "Open with" —
-        // so editors that reuse a running window (VS Code, Sublime, ...)
-        // open all of them as tabs in that one instance instead of separate
-        // windows, rather than Josha invoking the handler once per file.
-        internal static bool Invoke(IAssocHandler handler, IReadOnlyList<string> filePaths)
+        // IAssocHandler.Invoke()/CreateInvoker() go through COM activation
+        // that a lot of recommended handlers don't actually support for a
+        // bare CF_HDROP selection — it surfaces as Windows' generic "This
+        // file does not have an app associated with it" error even though
+        // the handler is a perfectly normal desktop app. GetName() sidesteps
+        // all of that: it's the same resolved executable path Explorer would
+        // launch, so we start it ourselves with every file as an argument —
+        // one process, so editors that reuse a running window (VS Code,
+        // Sublime, ...) open them as tabs in that one instance.
+        internal static bool Launch(IAssocHandler handler, IReadOnlyList<string> filePaths)
         {
-            var dataObject = new System.Windows.DataObject();
-            var files = new StringCollection();
-            foreach (var path in filePaths) files.Add(path);
-            dataObject.SetFileDropList(files);
-            var comDataObject = (System.Runtime.InteropServices.ComTypes.IDataObject)dataObject;
+            if (!handler.GetName(out var exePath).Succeeded || string.IsNullOrEmpty(exePath))
+                return false;
 
             try
             {
-                // Invoke() is documented as unsafe for multi-item selections;
-                // CreateInvoker is the API meant for that case. Falls back to
-                // Invoke() only if a handler doesn't support CreateInvoker.
-                var hr = handler.CreateInvoker(comDataObject, out var invoker);
-                if (hr.Succeeded && invoker != null)
-                    return invoker.Invoke().Succeeded;
-
-                return handler.Invoke(comDataObject).Succeeded;
+                var psi = new ProcessStartInfo(exePath) { UseShellExecute = false };
+                foreach (var path in filePaths) psi.ArgumentList.Add(path);
+                Process.Start(psi);
+                return true;
             }
             catch (Exception ex)
             {
-                Log.Warn(LogCat, "Invoke failed", ex);
+                Log.Warn(LogCat, $"Launching {exePath} failed", ex);
                 return false;
             }
         }

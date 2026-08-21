@@ -297,7 +297,7 @@ namespace Josha.ViewModels
             var workingPath = System.IO.Path.Combine(_repoRoot, path!.Replace('/', System.IO.Path.DirectorySeparatorChar));
             if (System.IO.File.Exists(workingPath)) paths.Add(workingPath);
 
-            if (!OpenWithComponent.Invoke(handler.Handler, paths))
+            if (!OpenWithComponent.Launch(handler.Handler, paths))
                 AppServices.Toast.Error($"Couldn't open with {handler.DisplayName}.");
         }
 
