@@ -25,9 +25,10 @@ namespace Josha.Business
         }
     }
 
-    // Wraps IAssocHandler / SHAssocEnumHandlers — the same "recommended apps"
-    // list and invocation mechanism Explorer's own "Open with" menu uses, so
-    // picking an entry here behaves identically (including reusing a running
+    // Wraps IAssocHandler / SHAssocEnumHandlers — the same handler list and
+    // invocation mechanism Explorer's own "Open with" menu uses (ASSOC_FILTER_NONE
+    // returns every registered handler, not just the curated "recommended" subset),
+    // so picking an entry here behaves identically (including reusing a running
     // instance for editors that support it).
     internal static class OpenWithComponent
     {
@@ -40,7 +41,7 @@ namespace Josha.Business
 
             try
             {
-                var hr = SHAssocEnumHandlers(extension, ASSOC_FILTER.ASSOC_FILTER_RECOMMENDED, out var enumHandlers);
+                var hr = SHAssocEnumHandlers(extension, ASSOC_FILTER.ASSOC_FILTER_NONE, out var enumHandlers);
                 if (hr.Failed || enumHandlers == null) return results;
 
                 var buffer = new IAssocHandler[1];

@@ -276,8 +276,8 @@ namespace Josha.ViewModels
             OpenCurrentVersion(path);
         }
 
-        // Handlers come from SHAssocEnumHandlers — the same "recommended
-        // apps" list Explorer's own "Open with" menu shows for this extension.
+        // Handlers come from SHAssocEnumHandlers — every app registered to
+        // open this extension, same as Explorer's "Open with" menu.
         internal List<OpenWithHandlerEntry> GetOpenWithHandlers()
         {
             if (_selectedFile == null) return new List<OpenWithHandlerEntry>();
