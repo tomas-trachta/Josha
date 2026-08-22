@@ -35,7 +35,7 @@
   <ItemGroup>
     <PackageReference Include="FluentFTP" Version="54.1.1" />
     <PackageReference Include="MahApps.Metro.IconPacks.Material" Version="6.2.1" />
-    <PackageReference Include="SSH.NET" Version="2025.1.0" />
+    <PackageReference Include="SSH.NET" Version="2026.0.0" />
     <PackageReference Include="Vanara.PInvoke.Shell32" Version="5.0.4" />
     <PackageReference Include="Vanara.Windows.Shell" Version="5.0.4" />
   </ItemGroup>
