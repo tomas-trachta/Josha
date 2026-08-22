@@ -21,7 +21,7 @@
                         <Border x:Name="Bd"
                                 Background="{TemplateBinding Background}"
                                 Padding="{TemplateBinding Padding}"
-                                CornerRadius="3"
+                                CornerRadius="6"
                                 SnapsToDevicePixels="True">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
@@ -51,7 +51,7 @@
     <Border Background="{StaticResource Brush.Surface}"
             BorderBrush="{StaticResource Brush.OutlineSubtle}"
             BorderThickness="0,0,0,1"
-            Padding="6,4"
+            Padding="10,7"
             MouseLeftButtonDown="OnBackgroundClick">
         <Grid>
             <Grid.ColumnDefinitions>

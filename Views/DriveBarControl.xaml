@@ -9,9 +9,15 @@
              d:DesignHeight="34" d:DesignWidth="500">
     <UserControl.Resources>
         <Style x:Key="DriveChipStyle" TargetType="Button">
-            <Setter Property="MinWidth" Value="36"/>
-            <Setter Property="Padding" Value="8,3"/>
-            <Setter Property="Margin" Value="0,0,4,0"/>
+            <!-- Fixed and equal Width/Height so CornerRadius="15" (half the
+                 side length) always draws a true circle. MinWidth alone with
+                 padding-driven height produced a slightly wider-than-tall
+                 pill instead — the corner arcs weren't symmetric, so a
+                 dead-center letter still read as off-center. -->
+            <Setter Property="Width" Value="30"/>
+            <Setter Property="Height" Value="30"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Margin" Value="0,0,6,0"/>
             <Setter Property="FontSize" Value="11"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Background" Value="{StaticResource Brush.Surface}"/>
@@ -26,8 +32,7 @@
                                 Background="{TemplateBinding Background}"
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}"
-                                Padding="{TemplateBinding Padding}"
-                                CornerRadius="3"
+                                CornerRadius="15"
                                 SnapsToDevicePixels="True">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
@@ -49,7 +54,7 @@
     <Border Background="{StaticResource Brush.SurfaceMuted}"
             BorderBrush="{StaticResource Brush.OutlineSubtle}"
             BorderThickness="0,0,0,1"
-            Padding="6,4">
+            Padding="10,6">
         <ItemsControl x:Name="DriveItems">
             <ItemsControl.ItemsPanel>
                 <ItemsPanelTemplate>
@@ -58,10 +63,23 @@
             </ItemsControl.ItemsPanel>
             <ItemsControl.ItemTemplate>
                 <DataTemplate>
-                    <Button Content="{Binding Letter}"
-                            Tag="{Binding Letter}"
+                    <!-- An explicit TextBlock instead of a raw string Content:
+                         Button wraps string content in AccessText, which
+                         reserves layout space for a potential mnemonic
+                         underline and renders single glyphs like "C"/"G"
+                         slightly off-center inside a circular chip. -->
+                    <Button Tag="{Binding Letter}"
                             Click="OnDriveClick"
                             ToolTip="{Binding Tooltip}">
+                        <!-- Small manual optical correction: Segoe UI's side
+                             bearing + line-box ascent/descent placement for a
+                             single glyph like "C"/"G" sits left-and-up of true
+                             geometric center by about a pixel — measured
+                             directly against the circle, not guessed. -->
+                        <TextBlock Text="{Binding Letter}"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"
+                                   Margin="1,1,0,0"/>
                         <Button.Style>
                             <Style TargetType="Button" BasedOn="{StaticResource DriveChipStyle}">
                                 <Style.Triggers>

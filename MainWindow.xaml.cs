@@ -18,6 +18,7 @@ namespace Josha
         private readonly AppShellViewModel _shell = new();
         private const double CollapsedSidebarWidth = 36;
         private double _lastExpandedSidebarWidth = 220;
+        private bool _supportsRoundedCorners;
 
         public MainWindow()
         {
@@ -107,6 +108,18 @@ namespace Josha
                 // message lets us return the monitor's rcWork instead.
                 var hwnd = new WindowInteropHelper(this).Handle;
                 HwndSource.FromHwnd(hwnd)?.AddHook(WndProc);
+
+                // The Window itself isn't AllowsTransparency, so the corner
+                // pixels WindowRoot's own rounding "cuts away" only look right
+                // when DWM actually crops the real window surface to match
+                // (Windows 11). Without that, those pixels would render as an
+                // opaque black square poking out from behind the rounded
+                // corners against anything but a black desktop — worse than
+                // the plain square window this replaces. So on a DWM miss
+                // (Windows 10), stay square rather than risk that.
+                _supportsRoundedCorners = ApplyDwmRoundedCorners(hwnd);
+                if (!_supportsRoundedCorners) WindowRoot.CornerRadius = new CornerRadius(0);
+
                 SyncMaxState();
             };
 
@@ -168,12 +181,14 @@ namespace Josha
             if (WindowState == WindowState.Maximized)
             {
                 WindowRoot.BorderThickness = new Thickness(0);
+                WindowRoot.CornerRadius = new CornerRadius(0);
                 MaxButton.Content = ""; // ChromeRestore
                 MaxButton.ToolTip = "Restore";
             }
             else
             {
                 WindowRoot.BorderThickness = new Thickness(1);
+                if (_supportsRoundedCorners) WindowRoot.CornerRadius = new CornerRadius(8);
                 MaxButton.Content = ""; // ChromeMaximize
                 MaxButton.ToolTip = "Maximize";
             }
@@ -211,6 +226,25 @@ namespace Josha
             mmi.ptMaxTrackSize.y = mmi.ptMaxSize.y;
             Marshal.StructureToPtr(mmi, lParam, true);
         }
+
+        // Real Windows 11 per-window corner rounding (DWM crops the composited
+        // surface itself), rather than a WPF-drawn approximation — so every
+        // pixel of the window, including anything a nested control draws flush
+        // to the edge, comes out correctly rounded for free. No-ops silently on
+        // Windows 10 (the attribute is unrecognized there), leaving today's
+        // square corners as the fallback.
+        private const int DWMWA_WINDOW_CORNER_PREFERENCE = 33;
+        private const int DWMWCP_ROUND = 2;
+
+        private static bool ApplyDwmRoundedCorners(IntPtr hwnd)
+        {
+            var preference = DWMWCP_ROUND;
+            var hr = DwmSetWindowAttribute(hwnd, DWMWA_WINDOW_CORNER_PREFERENCE, ref preference, sizeof(int));
+            return hr == 0; // S_OK
+        }
+
+        [DllImport("dwmapi.dll")]
+        private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attribute, ref int value, int valueSize);
 
         private const uint MONITOR_DEFAULTTONEAREST = 0x00000002;
 

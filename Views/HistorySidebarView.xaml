@@ -30,7 +30,7 @@
                                     <Border x:Name="Bd"
                                             Background="{TemplateBinding Background}"
                                             Padding="{TemplateBinding Padding}"
-                                            CornerRadius="5"
+                                            CornerRadius="8"
                                             SnapsToDevicePixels="True">
                                         <ContentPresenter HorizontalAlignment="Stretch"/>
                                     </Border>
@@ -120,7 +120,7 @@
         </DataTemplate>
     </UserControl.Resources>
 
-    <Border Background="{StaticResource Brush.SurfaceMuted}"
+    <Border Background="{StaticResource Brush.Surface}"
             BorderBrush="{StaticResource Brush.OutlineSubtle}"
             BorderThickness="0,0,1,0">
         <Grid>
@@ -142,13 +142,34 @@
                 <Button DockPanel.Dock="Right"
                         x:Name="ToggleExpandButton"
                         Click="OnToggleExpandClick"
-                        Width="20" Height="20"
+                        Width="24" Height="24"
                         Padding="0"
                         Background="Transparent"
                         BorderThickness="0"
                         Cursor="Hand"
                         ToolTip="Collapse / expand sidebar"
                         VerticalAlignment="Center">
+                    <!-- Circular hover target, matching every other toolbar
+                         icon button in the app (IconButtonStyle) instead of a
+                         bare glyph with no feedback shape of its own. -->
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border x:Name="Bd"
+                                    Background="{TemplateBinding Background}"
+                                    CornerRadius="12"
+                                    SnapsToDevicePixels="True">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter TargetName="Bd" Property="Background" Value="{StaticResource Brush.SurfaceHover}"/>
+                                </Trigger>
+                                <Trigger Property="IsPressed" Value="True">
+                                    <Setter TargetName="Bd" Property="Background" Value="{StaticResource Brush.SurfacePressed}"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Button.Template>
                     <iconPacks:PackIconMaterial Width="14" Height="14"
                                                 Foreground="{StaticResource Brush.OnSurfaceMuted}">
                         <iconPacks:PackIconMaterial.Style>
@@ -174,109 +195,93 @@
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
 
-            <Border Grid.Row="0"
-                    Margin="10,10,10,5"
-                    BorderBrush="{StaticResource Brush.Outline}"
-                    BorderThickness="1"
-                    CornerRadius="6"
-                    Background="{StaticResource Brush.SurfaceElevated}">
-                <DockPanel LastChildFill="True" Margin="8">
-                    <DockPanel.Resources>
-                        <Style TargetType="TextBlock" BasedOn="{StaticResource SectionHeaderStyle}"/>
-                    </DockPanel.Resources>
-                    <Border DockPanel.Dock="Top" Margin="0,0,0,6">
-                        <StackPanel Orientation="Horizontal">
-                            <iconPacks:PackIconMaterial Kind="History"
-                                                        Width="13" Height="13"
-                                                        Margin="0,0,6,0"
-                                                        Foreground="{StaticResource Brush.OnSurfaceSubtle}"/>
-                            <TextBlock Text="HISTORY"/>
-                        </StackPanel>
-                    </Border>
+            <!-- Flat sections instead of individually-boxed cards — a hairline
+                 rule under the header and the shared surface color are enough
+                 to separate them, matching how the rest of the shell (toolbar,
+                 drive bar, path bar) reads as one continuous surface rather
+                 than a stack of nested panels. -->
+            <DockPanel Grid.Row="0" LastChildFill="True" Margin="4,10,4,6">
+                <Border DockPanel.Dock="Top" Margin="8,0,8,8"
+                        Padding="0,0,0,6"
+                        BorderBrush="{StaticResource Brush.OutlineSubtle}"
+                        BorderThickness="0,0,0,1">
+                    <StackPanel Orientation="Horizontal">
+                        <iconPacks:PackIconMaterial Kind="History"
+                                                    Width="13" Height="13"
+                                                    Margin="0,0,6,0"
+                                                    Foreground="{StaticResource Brush.OnSurfaceSubtle}"/>
+                        <TextBlock Text="HISTORY" Style="{StaticResource SectionHeaderStyle}"/>
+                    </StackPanel>
+                </Border>
 
-                    <Grid>
-                        <ListBox x:Name="RecentList"
-                                 Style="{StaticResource HistoryListBoxStyle}"
-                                 ItemsSource="{Binding RecentHistory}"
-                                 ItemTemplate="{StaticResource HistoryEntryTemplate}"
-                                 MouseDoubleClick="OnRowDoubleClick"
-                                 KeyDown="OnListKeyDown"
-                                 PreviewMouseRightButtonUp="OnRowPreviewMouseRightButtonUp"/>
-                        <TextBlock Text="No directories visited yet"
-                                   Style="{StaticResource EmptyStateStyle}"
-                                   Visibility="{Binding RecentHistory.Count, Converter={StaticResource ZeroToVisible}}"/>
-                    </Grid>
-                </DockPanel>
-            </Border>
+                <Grid>
+                    <ListBox x:Name="RecentList"
+                             Style="{StaticResource HistoryListBoxStyle}"
+                             ItemsSource="{Binding RecentHistory}"
+                             ItemTemplate="{StaticResource HistoryEntryTemplate}"
+                             MouseDoubleClick="OnRowDoubleClick"
+                             KeyDown="OnListKeyDown"
+                             PreviewMouseRightButtonUp="OnRowPreviewMouseRightButtonUp"/>
+                    <TextBlock Text="No directories visited yet"
+                               Style="{StaticResource EmptyStateStyle}"
+                               Visibility="{Binding RecentHistory.Count, Converter={StaticResource ZeroToVisible}}"/>
+                </Grid>
+            </DockPanel>
 
-            <Border Grid.Row="1"
-                    Margin="10,5,10,10"
-                    BorderBrush="{StaticResource Brush.Outline}"
-                    BorderThickness="1"
-                    CornerRadius="6"
-                    Background="{StaticResource Brush.SurfaceElevated}">
-                <DockPanel LastChildFill="True" Margin="8">
-                    <DockPanel.Resources>
-                        <Style TargetType="TextBlock" BasedOn="{StaticResource SectionHeaderStyle}"/>
-                    </DockPanel.Resources>
-                    <Border DockPanel.Dock="Top" Margin="0,0,0,6">
-                        <StackPanel Orientation="Horizontal">
-                            <iconPacks:PackIconMaterial Kind="Star"
-                                                        Width="13" Height="13"
-                                                        Margin="0,0,6,0"
-                                                        Foreground="{StaticResource Brush.OnSurfaceSubtle}"/>
-                            <TextBlock Text="MOST VISITED"/>
-                        </StackPanel>
-                    </Border>
+            <DockPanel Grid.Row="1" LastChildFill="True" Margin="4,6,4,6">
+                <Border DockPanel.Dock="Top" Margin="8,0,8,8"
+                        Padding="0,0,0,6"
+                        BorderBrush="{StaticResource Brush.OutlineSubtle}"
+                        BorderThickness="0,0,0,1">
+                    <StackPanel Orientation="Horizontal">
+                        <iconPacks:PackIconMaterial Kind="Star"
+                                                    Width="13" Height="13"
+                                                    Margin="0,0,6,0"
+                                                    Foreground="{StaticResource Brush.OnSurfaceSubtle}"/>
+                        <TextBlock Text="MOST VISITED" Style="{StaticResource SectionHeaderStyle}"/>
+                    </StackPanel>
+                </Border>
 
-                    <Grid>
-                        <ListBox x:Name="MostVisitedList"
-                                 Style="{StaticResource HistoryListBoxStyle}"
-                                 ItemsSource="{Binding MostVisitedHistory}"
-                                 ItemTemplate="{StaticResource HistoryEntryTemplate}"
-                                 MouseDoubleClick="OnRowDoubleClick"
-                                 KeyDown="OnListKeyDown"
-                                 PreviewMouseRightButtonUp="OnRowPreviewMouseRightButtonUp"/>
-                        <TextBlock Text="No directories visited yet"
-                                   Style="{StaticResource EmptyStateStyle}"
-                                   Visibility="{Binding MostVisitedHistory.Count, Converter={StaticResource ZeroToVisible}}"/>
-                    </Grid>
-                </DockPanel>
-            </Border>
+                <Grid>
+                    <ListBox x:Name="MostVisitedList"
+                             Style="{StaticResource HistoryListBoxStyle}"
+                             ItemsSource="{Binding MostVisitedHistory}"
+                             ItemTemplate="{StaticResource HistoryEntryTemplate}"
+                             MouseDoubleClick="OnRowDoubleClick"
+                             KeyDown="OnListKeyDown"
+                             PreviewMouseRightButtonUp="OnRowPreviewMouseRightButtonUp"/>
+                    <TextBlock Text="No directories visited yet"
+                               Style="{StaticResource EmptyStateStyle}"
+                               Visibility="{Binding MostVisitedHistory.Count, Converter={StaticResource ZeroToVisible}}"/>
+                </Grid>
+            </DockPanel>
 
-            <Border Grid.Row="2"
-                    Margin="10,5,10,10"
-                    BorderBrush="{StaticResource Brush.Outline}"
-                    BorderThickness="1"
-                    CornerRadius="6"
-                    Background="{StaticResource Brush.SurfaceElevated}">
-                <DockPanel LastChildFill="True" Margin="8">
-                    <DockPanel.Resources>
-                        <Style TargetType="TextBlock" BasedOn="{StaticResource SectionHeaderStyle}"/>
-                    </DockPanel.Resources>
-                    <Border DockPanel.Dock="Top" Margin="0,0,0,6">
-                        <StackPanel Orientation="Horizontal">
-                            <iconPacks:PackIconMaterial Kind="Server"
-                                                        Width="13" Height="13"
-                                                        Margin="0,0,6,0"
-                                                        Foreground="{StaticResource Brush.OnSurfaceSubtle}"/>
-                            <TextBlock Text="REMOTE DIRECTORIES"/>
-                        </StackPanel>
-                    </Border>
+            <DockPanel Grid.Row="2" LastChildFill="True" Margin="4,6,4,10">
+                <Border DockPanel.Dock="Top" Margin="8,0,8,8"
+                        Padding="0,0,0,6"
+                        BorderBrush="{StaticResource Brush.OutlineSubtle}"
+                        BorderThickness="0,0,0,1">
+                    <StackPanel Orientation="Horizontal">
+                        <iconPacks:PackIconMaterial Kind="Server"
+                                                    Width="13" Height="13"
+                                                    Margin="0,0,6,0"
+                                                    Foreground="{StaticResource Brush.OnSurfaceSubtle}"/>
+                        <TextBlock Text="REMOTE DIRECTORIES" Style="{StaticResource SectionHeaderStyle}"/>
+                    </StackPanel>
+                </Border>
 
-                    <Grid>
-                        <ListBox x:Name="RemoteHistoryList"
-                                 Style="{StaticResource HistoryListBoxStyle}"
-                                 ItemsSource="{Binding RemoteDirectoryHistory}"
-                                 ItemTemplate="{StaticResource RemoteHistoryEntryTemplate}"
-                                 MouseDoubleClick="OnRowDoubleClick"
-                                 KeyDown="OnListKeyDown"/>
-                        <TextBlock Text="No remote directories visited yet"
-                                   Style="{StaticResource EmptyStateStyle}"
-                                   Visibility="{Binding RemoteDirectoryHistory.Count, Converter={StaticResource ZeroToVisible}}"/>
-                    </Grid>
-                </DockPanel>
-            </Border>
+                <Grid>
+                    <ListBox x:Name="RemoteHistoryList"
+                             Style="{StaticResource HistoryListBoxStyle}"
+                             ItemsSource="{Binding RemoteDirectoryHistory}"
+                             ItemTemplate="{StaticResource RemoteHistoryEntryTemplate}"
+                             MouseDoubleClick="OnRowDoubleClick"
+                             KeyDown="OnListKeyDown"/>
+                    <TextBlock Text="No remote directories visited yet"
+                               Style="{StaticResource EmptyStateStyle}"
+                               Visibility="{Binding RemoteDirectoryHistory.Count, Converter={StaticResource ZeroToVisible}}"/>
+                </Grid>
+            </DockPanel>
             </Grid>
         </Grid>
     </Border>

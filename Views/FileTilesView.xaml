@@ -25,13 +25,39 @@
                                 Background="{TemplateBinding Background}"
                                 BorderThickness="1"
                                 BorderBrush="Transparent"
-                                CornerRadius="4"
-                                Padding="0">
+                                CornerRadius="8"
+                                Padding="0"
+                                RenderTransformOrigin="0.5,0.5">
+                            <!-- Finder-style nudge: the tile scales up slightly under the
+                                 cursor instead of only re-tinting, so hover reads as motion. -->
+                            <Border.RenderTransform>
+                                <ScaleTransform x:Name="TileScale" ScaleX="1" ScaleY="1"/>
+                            </Border.RenderTransform>
                             <ContentPresenter HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter TargetName="Bd" Property="Background" Value="{StaticResource Brush.SurfaceHover}"/>
+                                <Trigger.EnterActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="TileScale" Storyboard.TargetProperty="ScaleX"
+                                                              To="1.05" Duration="0:0:0.12"/>
+                                            <DoubleAnimation Storyboard.TargetName="TileScale" Storyboard.TargetProperty="ScaleY"
+                                                              To="1.05" Duration="0:0:0.12"/>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </Trigger.EnterActions>
+                                <Trigger.ExitActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="TileScale" Storyboard.TargetProperty="ScaleX"
+                                                              To="1" Duration="0:0:0.15"/>
+                                            <DoubleAnimation Storyboard.TargetName="TileScale" Storyboard.TargetProperty="ScaleY"
+                                                              To="1" Duration="0:0:0.15"/>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </Trigger.ExitActions>
                             </Trigger>
                             <Trigger Property="IsSelected" Value="True">
                                 <Setter TargetName="Bd" Property="Background" Value="{StaticResource Brush.AccentSubtle}"/>

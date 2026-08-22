@@ -10,6 +10,8 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
+using System.Windows.Media.Effects;
 
 namespace Josha.Views
 {
@@ -40,6 +42,21 @@ namespace Josha.Views
 
             DataContextChanged += OnDataContextChanged;
             PreviewMouseDown += OnPreviewMouseDown;
+
+            PaneContent.SizeChanged += (_, _) => UpdatePaneContentClip();
+        }
+
+        // Border.CornerRadius shapes only the border's own stroke/fill —
+        // WPF never clips a Border's children to that rounded shape, so the
+        // square-cornered rows inside would otherwise draw straight over the
+        // rounded frame's corners. Re-run on every resize since the clip
+        // geometry is sized in device-independent pixels, not relative units.
+        private void UpdatePaneContentClip()
+        {
+            var (w, h) = (PaneContent.ActualWidth, PaneContent.ActualHeight);
+            if (w <= 0 || h <= 0) return;
+
+            PaneContent.Clip = new RectangleGeometry(new Rect(0, 0, w, h), 8, 8);
         }
 
         private void OnDiskUsageSelectionChanged()
@@ -85,12 +102,39 @@ namespace Josha.Views
         }
 
         private bool _isDragOver;
+        private SolidColorBrush? _activeBorderBrush;
+        private DropShadowEffect? _activeGlow;
+
+        // The border brush and glow are per-instance objects (never a shared
+        // DynamicResource) so animating them can't bleed into other panes.
+        private void EnsureActiveBorderVisuals()
+        {
+            if (_activeBorderBrush != null) return;
+
+            var startColor = Application.Current?.Resources["Brush.TreeBorderInactive"] is SolidColorBrush inactive
+                ? inactive.Color
+                : Colors.Transparent;
+            _activeBorderBrush = new SolidColorBrush(startColor);
+            ActiveBorder.BorderBrush = _activeBorderBrush;
+
+            var glowColor = Application.Current?.Resources["Brush.Accent"] is SolidColorBrush accent
+                ? accent.Color
+                : Colors.Transparent;
+            _activeGlow = new DropShadowEffect { Color = glowColor, BlurRadius = 18, ShadowDepth = 0, Opacity = 0 };
+            ActiveBorder.Effect = _activeGlow;
+        }
 
         private void ApplyActiveBorder(bool isActive)
         {
+            EnsureActiveBorderVisuals();
+
             var key = (isActive || _isDragOver) ? "Brush.TreeBorderActive" : "Brush.TreeBorderInactive";
-            if (Application.Current?.Resources[key] is Brush brush)
-                ActiveBorder.BorderBrush = brush;
+            if (Application.Current?.Resources[key] is SolidColorBrush target)
+                _activeBorderBrush!.BeginAnimation(SolidColorBrush.ColorProperty,
+                    new ColorAnimation(target.Color, TimeSpan.FromMilliseconds(160)));
+
+            _activeGlow!.BeginAnimation(DropShadowEffect.OpacityProperty,
+                new DoubleAnimation((isActive || _isDragOver) ? 0.55 : 0, TimeSpan.FromMilliseconds(200)));
         }
 
         private void RefreshActiveBorder()

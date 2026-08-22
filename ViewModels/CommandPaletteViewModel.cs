@@ -61,7 +61,13 @@ namespace Josha.ViewModels
             foreach (var item in ranked.Take(80))
                 FilteredItems.Add(item);
 
-            Selected = FilteredItems.Count > 0 ? FilteredItems[0] : null;
+            // Only auto-select a "top match" once there's an actual query to
+            // rank against — pre-highlighting item 0 of the plain browse list
+            // (nothing typed yet) reads as an arbitrary, premature selection
+            // rather than a meaningful match.
+            Selected = !string.IsNullOrWhiteSpace(_query) && FilteredItems.Count > 0
+                ? FilteredItems[0]
+                : null;
         }
 
         // Score bands: prefix > word-start > substring > subsequence > miss.

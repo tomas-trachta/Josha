@@ -7,11 +7,13 @@
         xmlns:models="clr-namespace:Josha.Models"
         mc:Ignorable="d"
         Title="Bookmarks"
-        Width="520" Height="420"
+        Width="520" Height="460"
         WindowStartupLocation="CenterOwner"
-        WindowStyle="ToolWindow"
+        WindowStyle="None"
+        ResizeMode="NoResize"
         ShowInTaskbar="False"
-        Background="{StaticResource Brush.Surface}"
+        AllowsTransparency="True"
+        Background="Transparent"
         Foreground="{StaticResource Brush.OnSurface}"
         FontFamily="{DynamicResource Font.Body}"
         d:DataContext="{d:DesignInstance Type=vm:AppShellViewModel}">
@@ -22,32 +24,71 @@
         <CommandBinding Command="ApplicationCommands.Close" Executed="OnClose"/>
     </Window.CommandBindings>
 
-    <Grid Margin="16">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
+    <!-- Same floating-card chrome as the command palette (borderless window,
+         rounded card, bloom-in on open) — every modal picker in the app reads
+         as one family instead of a mix of native dialogs and custom ones. -->
+    <Border Background="{StaticResource Brush.SurfaceElevated}"
+            BorderBrush="{StaticResource Brush.Outline}"
+            BorderThickness="1"
+            CornerRadius="16"
+            Effect="{StaticResource Elevation.3}"
+            RenderTransformOrigin="0.5,0.5">
+        <Border.RenderTransform>
+            <ScaleTransform ScaleX="0.96" ScaleY="0.96"/>
+        </Border.RenderTransform>
+        <Border.Triggers>
+            <EventTrigger RoutedEvent="FrameworkElement.Loaded">
+                <BeginStoryboard>
+                    <Storyboard>
+                        <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                          From="0" To="1" Duration="0:0:0.14"/>
+                        <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)"
+                                          From="0.96" To="1" Duration="0:0:0.16"/>
+                        <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
+                                          From="0.96" To="1" Duration="0:0:0.16"/>
+                    </Storyboard>
+                </BeginStoryboard>
+            </EventTrigger>
+        </Border.Triggers>
 
-        <TextBlock Grid.Row="0"
-                   Text="Bookmarks"
-                   FontSize="16" FontWeight="SemiBold"
-                   Margin="0,0,0,12"/>
+        <Grid Margin="2">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
 
-        <Border Grid.Row="1"
-                BorderBrush="{StaticResource Brush.OutlineSubtle}"
-                BorderThickness="1"
-                CornerRadius="4">
+            <Border Grid.Row="0"
+                    Padding="18,16"
+                    BorderBrush="{StaticResource Brush.OutlineSubtle}"
+                    BorderThickness="0,0,0,1">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="&#xE734;"
+                               FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                               FontSize="16"
+                               Foreground="{StaticResource Brush.OnSurfaceMuted}"
+                               VerticalAlignment="Center"
+                               Margin="0,0,12,0"/>
+                    <TextBlock Text="Bookmarks"
+                               FontSize="17"
+                               VerticalAlignment="Center"/>
+                </StackPanel>
+            </Border>
+
             <ListBox x:Name="BookmarkList"
+                     Grid.Row="1"
                      ItemsSource="{Binding Bookmarks}"
                      Background="Transparent"
                      BorderThickness="0"
+                     Margin="6,6"
+                     Padding="0"
                      ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                      MouseDoubleClick="OnRowDoubleClick"
                      KeyDown="OnListKeyDown">
                 <ListBox.ItemContainerStyle>
                     <Style TargetType="ListBoxItem">
-                        <Setter Property="Padding" Value="8,6"/>
+                        <Setter Property="Padding" Value="12,10"/>
+                        <Setter Property="Margin" Value="6,1"/>
                         <Setter Property="Background" Value="Transparent"/>
                         <Setter Property="BorderThickness" Value="0"/>
                         <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
@@ -57,7 +98,7 @@
                                     <Border x:Name="Bd"
                                             Background="{TemplateBinding Background}"
                                             Padding="{TemplateBinding Padding}"
-                                            CornerRadius="3"
+                                            CornerRadius="9"
                                             SnapsToDevicePixels="True">
                                         <ContentPresenter HorizontalAlignment="Stretch"/>
                                     </Border>
@@ -66,7 +107,7 @@
                                             <Setter TargetName="Bd" Property="Background" Value="{StaticResource Brush.SurfaceHover}"/>
                                         </Trigger>
                                         <Trigger Property="IsSelected" Value="True">
-                                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource Brush.AccentSubtle}"/>
+                                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource Brush.Accent}"/>
                                         </Trigger>
                                     </ControlTemplate.Triggers>
                                 </ControlTemplate>
@@ -81,7 +122,7 @@
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
-                            <StackPanel Grid.Column="0">
+                            <StackPanel Grid.Column="0" VerticalAlignment="Center">
                                 <TextBlock Text="{Binding Name}" FontWeight="SemiBold"
                                            Foreground="{StaticResource Brush.OnSurface}"/>
                                 <TextBlock Text="{Binding TargetPath}" FontSize="11"
@@ -100,17 +141,50 @@
                                     Width="24" Height="24"
                                     Cursor="Hand"
                                     VerticalAlignment="Center"
-                                    ToolTip="Remove bookmark"/>
+                                    ToolTip="Remove bookmark">
+                                <Button.Style>
+                                    <Style TargetType="Button">
+                                        <Setter Property="Template">
+                                            <Setter.Value>
+                                                <ControlTemplate TargetType="Button">
+                                                    <Border x:Name="RemoveBd"
+                                                            Background="Transparent"
+                                                            CornerRadius="12"
+                                                            SnapsToDevicePixels="True">
+                                                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                    </Border>
+                                                    <ControlTemplate.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter TargetName="RemoveBd" Property="Background" Value="{StaticResource Brush.Toast.Error}"/>
+                                                            <Setter Property="Foreground" Value="White"/>
+                                                        </Trigger>
+                                                    </ControlTemplate.Triggers>
+                                                </ControlTemplate>
+                                            </Setter.Value>
+                                        </Setter>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
                         </Grid>
                     </DataTemplate>
                 </ListBox.ItemTemplate>
             </ListBox>
-        </Border>
 
-        <TextBlock Grid.Row="2"
-                   Margin="0,12,0,0"
-                   FontSize="11"
-                   Foreground="{StaticResource Brush.OnSurfaceMuted}"
-                   Text="Enter / double-click → open · Esc → close · Ctrl+D in a pane → add"/>
-    </Grid>
+            <Border Grid.Row="2"
+                    Padding="18,10"
+                    Background="{StaticResource Brush.SurfaceMuted}"
+                    BorderBrush="{StaticResource Brush.OutlineSubtle}"
+                    BorderThickness="0,1,0,0"
+                    CornerRadius="0,0,14,14">
+                <TextBlock Foreground="{StaticResource Brush.OnSurfaceSubtle}"
+                           FontSize="11">
+                    <Run Text="Enter / double-click open"/>
+                    <Run Text="·" Foreground="{StaticResource Brush.OutlineStrong}"/>
+                    <Run Text="Esc close"/>
+                    <Run Text="·" Foreground="{StaticResource Brush.OutlineStrong}"/>
+                    <Run Text="Ctrl+D in a pane adds one"/>
+                </TextBlock>
+            </Border>
+        </Grid>
+    </Border>
 </Window>

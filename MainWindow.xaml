@@ -18,11 +18,17 @@
         FontFamily="{DynamicResource Font.Body}"
         d:DataContext="{d:DesignInstance Type=vm:AppShellViewModel}">
 
+    <!-- GlassFrameThickness="0,0,0,1" is the standard trick for getting DWM's
+         native drop shadow around a WindowStyle=None window — a fully zero
+         thickness suppresses it entirely. Corner rounding itself is done via
+         DwmSetWindowAttribute in code-behind (Windows 11's real per-window
+         rounding, not a WPF-drawn approximation), so it degrades cleanly to
+         today's square corners on Windows 10 instead of half-working. -->
     <shell:WindowChrome.WindowChrome>
         <shell:WindowChrome CaptionHeight="32"
                             ResizeBorderThickness="6"
                             CornerRadius="0"
-                            GlassFrameThickness="0"
+                            GlassFrameThickness="0,0,0,1"
                             UseAeroCaptionButtons="False"
                             NonClientFrameEdges="None"/>
     </shell:WindowChrome.WindowChrome>
@@ -84,7 +90,38 @@
     <Border x:Name="WindowRoot"
             Background="{StaticResource Brush.SurfaceMuted}"
             BorderBrush="{StaticResource Brush.Outline}"
-            BorderThickness="1">
+            BorderThickness="1"
+            CornerRadius="8"
+            RenderTransformOrigin="0.5,0.5">
+        <!-- First-open moment: the whole shell blooms in from slightly-small
+             instead of just snapping to visible — the one thing every user
+             sees, so it carries the most weight of any animation in the app.
+             Scale only (no opacity fade): the Window itself isn't
+             AllowsTransparency, so fading this fully-opaque root out would
+             risk a flash of whatever the raw HWND surface defaults to. -->
+        <Border.RenderTransform>
+            <ScaleTransform ScaleX="0.98" ScaleY="0.98"/>
+        </Border.RenderTransform>
+        <Border.Triggers>
+            <EventTrigger RoutedEvent="FrameworkElement.Loaded">
+                <BeginStoryboard>
+                    <Storyboard>
+                        <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)"
+                                          From="0.98" To="1" Duration="0:0:0.32">
+                            <DoubleAnimation.EasingFunction>
+                                <QuadraticEase EasingMode="EaseOut"/>
+                            </DoubleAnimation.EasingFunction>
+                        </DoubleAnimation>
+                        <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
+                                          From="0.98" To="1" Duration="0:0:0.32">
+                            <DoubleAnimation.EasingFunction>
+                                <QuadraticEase EasingMode="EaseOut"/>
+                            </DoubleAnimation.EasingFunction>
+                        </DoubleAnimation>
+                    </Storyboard>
+                </BeginStoryboard>
+            </EventTrigger>
+        </Border.Triggers>
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="32"/>
@@ -136,6 +173,10 @@
             </Grid>
 
             <Grid Grid.Row="1">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition x:Name="SidebarColumn" Width="220" MinWidth="160" MaxWidth="420"/>
                     <ColumnDefinition Width="Auto"/>
@@ -144,38 +185,28 @@
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
 
-                <views:HistorySidebarView x:Name="HistorySidebar" Grid.Column="0" DataContext="{Binding}"/>
+                <views:HistorySidebarView x:Name="HistorySidebar" Grid.Column="0" Grid.RowSpan="2" DataContext="{Binding}"/>
 
-                <GridSplitter Grid.Column="1" Width="3"
+                <GridSplitter Grid.Column="1" Grid.RowSpan="2" Width="3"
                               Background="{StaticResource Brush.Outline}"
                               HorizontalAlignment="Center" VerticalAlignment="Stretch"
                               ResizeBehavior="PreviousAndNext"
                               IsEnabled="{Binding IsExpanded, ElementName=HistorySidebar}"/>
 
-                <Grid Grid.Column="2">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
-                    </Grid.RowDefinitions>
-                    <views:PaneTabBar x:Name="LeftTabBar" Grid.Row="0" DataContext="{Binding LeftColumn}"/>
-                    <views:FilePaneView x:Name="LeftPane" Grid.Row="1"
-                                        DataContext="{Binding LeftColumn.ActiveTab}"/>
-                </Grid>
+                <views:PaneTabBar x:Name="LeftTabBar" Grid.Row="0" Grid.Column="2" DataContext="{Binding LeftColumn}"/>
+                <views:FilePaneView x:Name="LeftPane" Grid.Row="1" Grid.Column="2"
+                                    DataContext="{Binding LeftColumn.ActiveTab}"/>
 
-                <GridSplitter Grid.Column="3" Width="3"
+                <!-- Row-restricted to Row 1 so the splitter spans only the pane
+                     content, not the tab bar above it. -->
+                <GridSplitter Grid.Column="3" Grid.Row="1" Width="3"
                               Background="{StaticResource Brush.Outline}"
                               HorizontalAlignment="Center" VerticalAlignment="Stretch"
                               ResizeBehavior="PreviousAndNext"/>
 
-                <Grid Grid.Column="4">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
-                    </Grid.RowDefinitions>
-                    <views:PaneTabBar x:Name="RightTabBar" Grid.Row="0" DataContext="{Binding RightColumn}"/>
-                    <views:FilePaneView x:Name="RightPane" Grid.Row="1"
-                                        DataContext="{Binding RightColumn.ActiveTab}"/>
-                </Grid>
+                <views:PaneTabBar x:Name="RightTabBar" Grid.Row="0" Grid.Column="4" DataContext="{Binding RightColumn}"/>
+                <views:FilePaneView x:Name="RightPane" Grid.Row="1" Grid.Column="4"
+                                    DataContext="{Binding RightColumn.ActiveTab}"/>
             </Grid>
 
             <views:FunctionKeyBar Grid.Row="2" DataContext="{Binding}"/>

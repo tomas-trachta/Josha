@@ -123,9 +123,9 @@
                         BorderBrush="{StaticResource Brush.OutlineSubtle}"
                         BorderThickness="0,0,0,1">
                     <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
-                             Style="{StaticResource SearchTextBoxStyle}"
+                             Style="{StaticResource PillSearchTextBoxStyle}"
                              Tag="Search commits by hash or message"
-                             MinHeight="26"/>
+                             MinHeight="30"/>
                 </Border>
 
                 <ProgressBar Grid.Row="1"

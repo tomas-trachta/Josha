@@ -35,7 +35,7 @@
                 Background="{StaticResource Brush.SurfaceMuted}"
                 BorderBrush="{StaticResource Brush.OutlineSubtle}"
                 BorderThickness="1"
-                CornerRadius="3">
+                CornerRadius="14">
             <ListBox x:Name="SiteList"
                      Background="Transparent"
                      BorderThickness="0"

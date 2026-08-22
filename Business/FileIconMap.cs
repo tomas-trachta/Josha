@@ -38,16 +38,16 @@ namespace Josha.Business
                 foreach (var x in xs) ext[x] = (kind, brush);
             }
 
-            Add(PackIconMaterialKind.FileImageOutline, BrushImage,
+            Add(PackIconMaterialKind.FileImage, BrushImage,
                 "png", "jpg", "jpeg", "gif", "bmp", "webp", "heic", "heif",
                 "tif", "tiff", "ico", "avif", "jfif");
             Add(PackIconMaterialKind.Svg, BrushImage, "svg");
 
-            Add(PackIconMaterialKind.FileVideoOutline, BrushVideo,
+            Add(PackIconMaterialKind.FileVideo, BrushVideo,
                 "mp4", "mkv", "avi", "mov", "wmv", "webm", "flv", "m4v",
                 "mpg", "mpeg", "3gp");
 
-            Add(PackIconMaterialKind.FileMusicOutline, BrushAudio,
+            Add(PackIconMaterialKind.FileMusic, BrushAudio,
                 "mp3", "wav", "flac", "ogg", "m4a", "aac", "wma", "opus", "aiff");
 
             Add(PackIconMaterialKind.FilePdfBox,        BrushDoc, "pdf");
@@ -157,14 +157,17 @@ namespace Josha.Business
             };
             _byNameMap = byName.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
 
+            // User-facing folders get filled icons for a warmer, more colorful
+            // presence in the tree; system/build folders below stay outline so
+            // the two read as visually distinct at a glance.
             var sf = new Dictionary<string, (PackIconMaterialKind, string)>(StringComparer.OrdinalIgnoreCase)
             {
                 ["Desktop"]          = (PackIconMaterialKind.MonitorDashboard,        BrushFolder),
-                ["Downloads"]        = (PackIconMaterialKind.FolderDownloadOutline,   BrushFolder),
-                ["Documents"]        = (PackIconMaterialKind.FolderTextOutline,       BrushFolder),
+                ["Downloads"]        = (PackIconMaterialKind.FolderDownload,          BrushFolder),
+                ["Documents"]        = (PackIconMaterialKind.FolderText,              BrushFolder),
                 ["Pictures"]         = (PackIconMaterialKind.FolderImage,             BrushImage),
-                ["Videos"]           = (PackIconMaterialKind.FolderPlayOutline,       BrushVideo),
-                ["Music"]            = (PackIconMaterialKind.FolderMusicOutline,      BrushAudio),
+                ["Videos"]           = (PackIconMaterialKind.FolderPlay,              BrushVideo),
+                ["Music"]            = (PackIconMaterialKind.FolderMusic,             BrushAudio),
                 ["AppData"]          = (PackIconMaterialKind.FolderCogOutline,        BrushUnknown),
                 ["Application Data"] = (PackIconMaterialKind.FolderCogOutline,        BrushUnknown),
                 ["ProgramData"]      = (PackIconMaterialKind.FolderCogOutline,        BrushUnknown),
@@ -197,7 +200,7 @@ namespace Josha.Business
             {
                 if (_specialFolderMap.TryGetValue(name, out var sf))
                     return sf;
-                return (PackIconMaterialKind.FolderOutline, BrushFolder);
+                return (PackIconMaterialKind.Folder, BrushFolder);
             }
 
             if (_byNameMap.TryGetValue(name, out var byName))

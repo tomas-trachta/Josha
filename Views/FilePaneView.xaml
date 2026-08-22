@@ -9,7 +9,7 @@
              d:DataContext="{d:DesignInstance Type=vm:FilePaneViewModel}"
              d:DesignHeight="500" d:DesignWidth="600">
     <Border x:Name="ActiveBorder"
-            BorderThickness="2" CornerRadius="4" Margin="2"
+            BorderThickness="2" CornerRadius="10" Margin="2"
             BorderBrush="{StaticResource Brush.TreeBorderInactive}"
             SnapsToDevicePixels="True"
             AllowDrop="True"
@@ -17,7 +17,12 @@
             DragOver="OnDragOver"
             DragLeave="OnDragLeave"
             Drop="OnDrop">
-        <Grid>
+        <!-- Border.CornerRadius only shapes the border's own stroke/fill —
+             it does NOT clip child content, so square-cornered rows (drive
+             bar, filter box, list) would otherwise poke straight through the
+             rounded frame. PaneContent.Clip (wired up in code-behind via
+             SizeChanged) is what actually rounds the content off. -->
+        <Grid x:Name="PaneContent">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
@@ -116,7 +121,7 @@
                                                                 Background="{TemplateBinding Background}"
                                                                 BorderBrush="{TemplateBinding BorderBrush}"
                                                                 BorderThickness="{TemplateBinding BorderThickness}"
-                                                                CornerRadius="3"
+                                                                CornerRadius="8"
                                                                 SnapsToDevicePixels="True">
                                                             <ContentPresenter HorizontalAlignment="Center"
                                                                               VerticalAlignment="Center"/>
@@ -197,7 +202,7 @@
                                                         Background="{DynamicResource Brush.SurfaceMuted}"
                                                         BorderBrush="{DynamicResource Brush.OutlineSubtle}"
                                                         BorderThickness="1"
-                                                        CornerRadius="3"
+                                                        CornerRadius="6"
                                                         Padding="6,1"
                                                         VerticalAlignment="Center">
                                                     <TextBlock Text="{Binding TypeLabel}"
@@ -211,9 +216,9 @@
                                     <Grid Grid.Column="0" Margin="0,0,4,0">
                                         <TextBox x:Name="AllSearchBox"
                                                  Text="{Binding AllSearchQuery, UpdateSourceTrigger=PropertyChanged}"
-                                                 Style="{StaticResource ModernTextBoxStyle}"
+                                                 Style="{StaticResource PillSearchTextBoxStyle}"
                                                  Tag="Search all…"
-                                                 MinHeight="26"
+                                                 MinHeight="30"
                                                  KeyDown="OnDiskUsageSearchBoxKeyDown"/>
                                         <Popup PlacementTarget="{Binding ElementName=AllSearchBox}"
                                                Placement="Bottom"
@@ -225,7 +230,7 @@
                                             <Border Background="{DynamicResource Brush.SurfaceElevated}"
                                                     BorderBrush="{DynamicResource Brush.Outline}"
                                                     BorderThickness="1"
-                                                    CornerRadius="4"
+                                                    CornerRadius="12"
                                                     Effect="{StaticResource Elevation.2}"
                                                     MaxHeight="360">
                                                 <ListBox x:Name="AllSearchResultsList"
@@ -244,9 +249,9 @@
                                     <Grid Grid.Column="1" Margin="2,0,2,0">
                                         <TextBox x:Name="FilesSearchBox"
                                                  Text="{Binding FilesSearchQuery, UpdateSourceTrigger=PropertyChanged}"
-                                                 Style="{StaticResource ModernTextBoxStyle}"
+                                                 Style="{StaticResource PillSearchTextBoxStyle}"
                                                  Tag="Files only…"
-                                                 MinHeight="26"
+                                                 MinHeight="30"
                                                  KeyDown="OnDiskUsageSearchBoxKeyDown"/>
                                         <Popup PlacementTarget="{Binding ElementName=FilesSearchBox}"
                                                Placement="Bottom"
@@ -258,7 +263,7 @@
                                             <Border Background="{DynamicResource Brush.SurfaceElevated}"
                                                     BorderBrush="{DynamicResource Brush.Outline}"
                                                     BorderThickness="1"
-                                                    CornerRadius="4"
+                                                    CornerRadius="12"
                                                     Effect="{StaticResource Elevation.2}"
                                                     MaxHeight="360">
                                                 <ListBox x:Name="FilesSearchResultsList"
@@ -277,9 +282,9 @@
                                     <Grid Grid.Column="2" Margin="4,0,0,0">
                                         <TextBox x:Name="FoldersSearchBox"
                                                  Text="{Binding FoldersSearchQuery, UpdateSourceTrigger=PropertyChanged}"
-                                                 Style="{StaticResource ModernTextBoxStyle}"
+                                                 Style="{StaticResource PillSearchTextBoxStyle}"
                                                  Tag="Folders only…"
-                                                 MinHeight="26"
+                                                 MinHeight="30"
                                                  KeyDown="OnDiskUsageSearchBoxKeyDown"/>
                                         <Popup PlacementTarget="{Binding ElementName=FoldersSearchBox}"
                                                Placement="Bottom"
@@ -291,7 +296,7 @@
                                             <Border Background="{DynamicResource Brush.SurfaceElevated}"
                                                     BorderBrush="{DynamicResource Brush.Outline}"
                                                     BorderThickness="1"
-                                                    CornerRadius="4"
+                                                    CornerRadius="12"
                                                     Effect="{StaticResource Elevation.2}"
                                                     MaxHeight="360">
                                                 <ListBox x:Name="FoldersSearchResultsList"

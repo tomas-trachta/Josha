@@ -42,7 +42,7 @@
                                     <ControlTemplate TargetType="ListBoxItem">
                                         <Border x:Name="ItemBorder"
                                                 Background="Transparent"
-                                                CornerRadius="4"
+                                                CornerRadius="8"
                                                 Padding="0"
                                                 SnapsToDevicePixels="True">
                                             <ContentPresenter/>

@@ -159,7 +159,7 @@
                 Background="{StaticResource Brush.SurfaceMuted}"
                 BorderBrush="{StaticResource Brush.OutlineSubtle}"
                 BorderThickness="1"
-                CornerRadius="3"
+                CornerRadius="8"
                 Visibility="{Binding TestVisible, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolToVis}}">
             <TextBlock x:Name="TestResultText"
                        FontSize="11"

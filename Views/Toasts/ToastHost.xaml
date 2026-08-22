@@ -29,7 +29,31 @@
                         BorderThickness="1"
                         CornerRadius="8"
                         Padding="12,10"
-                        Effect="{StaticResource Elevation.2}">
+                        Effect="{StaticResource Elevation.2}"
+                        Opacity="0"
+                        RenderTransformOrigin="1,0.5">
+                    <!-- Slide-and-settle entrance with a slight overshoot, the same
+                         spring feel macOS notification banners use, instead of just
+                         popping into the stack. -->
+                    <Border.RenderTransform>
+                        <TranslateTransform X="48"/>
+                    </Border.RenderTransform>
+                    <Border.Triggers>
+                        <EventTrigger RoutedEvent="FrameworkElement.Loaded">
+                            <BeginStoryboard>
+                                <Storyboard>
+                                    <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                                      From="0" To="1" Duration="0:0:0.22"/>
+                                    <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.X)"
+                                                      From="48" To="0" Duration="0:0:0.32">
+                                        <DoubleAnimation.EasingFunction>
+                                            <BackEase EasingMode="EaseOut" Amplitude="0.35"/>
+                                        </DoubleAnimation.EasingFunction>
+                                    </DoubleAnimation>
+                                </Storyboard>
+                            </BeginStoryboard>
+                        </EventTrigger>
+                    </Border.Triggers>
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto"/>

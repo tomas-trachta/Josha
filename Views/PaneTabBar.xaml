@@ -12,7 +12,7 @@
             <Setter Property="Background" Value="{StaticResource Brush.SurfaceMuted}"/>
             <Setter Property="BorderBrush" Value="{StaticResource Brush.OutlineSubtle}"/>
             <Setter Property="BorderThickness" Value="1,1,1,0"/>
-            <Setter Property="CornerRadius" Value="4,4,0,0"/>
+            <Setter Property="CornerRadius" Value="7,7,0,0"/>
             <Setter Property="Padding" Value="0"/>
             <Setter Property="MinWidth" Value="100"/>
             <Setter Property="MaxWidth" Value="200"/>
@@ -31,13 +31,14 @@
             <Setter Property="Width" Value="20"/>
             <Setter Property="Height" Value="20"/>
             <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Opacity" Value="0"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
                         <Border x:Name="Bd"
                                 Background="{TemplateBinding Background}"
-                                CornerRadius="3">
+                                CornerRadius="10">
                             <ContentPresenter HorizontalAlignment="Center"
                                               VerticalAlignment="Center"
                                               TextElement.FontFamily="{TemplateBinding FontFamily}"/>
@@ -92,14 +93,47 @@
                                     <RowDefinition Height="*"/>
                                 </Grid.RowDefinitions>
                                 <!-- Top accent strip: redundant cue alongside the border so the
-                                     focused pane is unambiguous even at small scale. -->
+                                     focused pane is unambiguous even at small scale. Rounded to
+                                     match the tab's own top corners — Border.CornerRadius only
+                                     shapes a Border's own fill, not its children, so a square
+                                     strip here would poke a small notch through the rounded tab
+                                     shape above. -->
                                 <Border Grid.Row="0"
+                                        CornerRadius="7,7,0,0"
                                         Background="{Binding IsActive, Converter={StaticResource ActiveToAccentStrip}}"/>
                                 <Grid Grid.Row="1">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
+                                    <!-- Hover wash + the close button's fade-in live here so a
+                                         single MouseEnter/Leave pair drives both — a calmer tab
+                                         bar until you're actually pointed at it, like Chrome/
+                                         Finder tabs. -->
+                                    <Grid.Triggers>
+                                        <EventTrigger RoutedEvent="Mouse.MouseEnter">
+                                            <BeginStoryboard>
+                                                <Storyboard>
+                                                    <DoubleAnimation Storyboard.TargetName="TabHoverLayer" Storyboard.TargetProperty="Opacity"
+                                                                      To="1" Duration="0:0:0.12"/>
+                                                    <DoubleAnimation Storyboard.TargetName="CloseButton" Storyboard.TargetProperty="Opacity"
+                                                                      To="1" Duration="0:0:0.12"/>
+                                                </Storyboard>
+                                            </BeginStoryboard>
+                                        </EventTrigger>
+                                        <EventTrigger RoutedEvent="Mouse.MouseLeave">
+                                            <BeginStoryboard>
+                                                <Storyboard>
+                                                    <DoubleAnimation Storyboard.TargetName="TabHoverLayer" Storyboard.TargetProperty="Opacity"
+                                                                      To="0" Duration="0:0:0.18"/>
+                                                    <DoubleAnimation Storyboard.TargetName="CloseButton" Storyboard.TargetProperty="Opacity"
+                                                                      To="0" Duration="0:0:0.18"/>
+                                                </Storyboard>
+                                            </BeginStoryboard>
+                                        </EventTrigger>
+                                    </Grid.Triggers>
+                                    <Border x:Name="TabHoverLayer" Grid.ColumnSpan="2" CornerRadius="5,5,0,0"
+                                            Background="{StaticResource Brush.SurfaceHover}" Opacity="0"/>
                                     <TextBlock Grid.Column="0"
                                                Text="{Binding TabTitle}"
                                                Foreground="{StaticResource Brush.OnSurface}"
@@ -108,7 +142,8 @@
                                                TextTrimming="CharacterEllipsis"
                                                Padding="10,4,4,4"
                                                ToolTip="{Binding CurrentPath}"/>
-                                    <Button Grid.Column="1"
+                                    <Button x:Name="CloseButton"
+                                            Grid.Column="1"
                                             Content="&#xE10A;"
                                             Tag="{Binding}"
                                             Click="OnCloseClick"

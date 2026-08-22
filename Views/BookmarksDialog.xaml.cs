@@ -15,12 +15,11 @@ namespace Josha.Views
             _shell = shell;
             DataContext = shell;
             InitializeComponent();
-            Loaded += (_, _) =>
-            {
-                if (BookmarkList.Items.Count > 0 && BookmarkList.SelectedIndex < 0)
-                    BookmarkList.SelectedIndex = 0;
-                BookmarkList.Focus();
-            };
+            // No forced default selection — same reasoning as the command
+            // palette: pre-highlighting the first bookmark before the user has
+            // done anything reads as arbitrary rather than intentional. Arrow
+            // keys still select naturally from here once pressed.
+            Loaded += (_, _) => BookmarkList.Focus();
         }
 
         private void Activate(Bookmark? bookmark)
