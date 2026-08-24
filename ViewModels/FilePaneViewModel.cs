@@ -571,6 +571,12 @@ namespace Josha.ViewModels
                     return;
                 }
 
+                try { await AppServices.Snapshot.ReconcileAsync(drive).ConfigureAwait(true); }
+                catch (Exception ex)
+                {
+                    Log.Warn("Pane", $"Snapshot reconcile failed for drive {drive}", ex);
+                }
+
                 var subtree = driveRoot.FindByPath(path);
                 if (subtree == null)
                 {
