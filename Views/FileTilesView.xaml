@@ -70,61 +70,74 @@
         </Style>
     </UserControl.Resources>
 
-    <ListBox x:Name="MainList"
-             ItemsSource="{Binding RowsView}"
-             ItemContainerStyle="{StaticResource TileItemStyle}"
-             SelectionMode="Extended"
-             Background="{StaticResource Brush.Surface}"
-             Foreground="{StaticResource Brush.OnSurface}"
-             BorderThickness="0"
-             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-             ScrollViewer.VerticalScrollBarVisibility="Auto"
-             VirtualizingPanel.IsVirtualizing="True"
-             VirtualizingPanel.VirtualizationMode="Recycling"
-             KeyboardNavigation.DirectionalNavigation="Continue"
-             MouseDoubleClick="OnTileDoubleClick"
-             KeyDown="OnTileKeyDown"
-             SelectionChanged="OnSelectionChanged"
-             PreviewMouseRightButtonUp="OnTilePreviewMouseRightButtonUp">
-        <ListBox.ItemsPanel>
-            <ItemsPanelTemplate>
-                <WrapPanel Orientation="Horizontal" IsItemsHost="True"/>
-            </ItemsPanelTemplate>
-        </ListBox.ItemsPanel>
-        <ListBox.ItemTemplate>
-            <DataTemplate>
-                <Border Width="120" Height="110" Padding="8,10">
-                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                        <iconPacks:PackIconMaterial Kind="{Binding IconKind}"
-                                                    Foreground="{Binding IconBrushKey, Converter={StaticResource ResKeyToBrush}}"
-                                                    Width="40" Height="40"
-                                                    HorizontalAlignment="Center"
-                                                    Margin="0,0,0,6"/>
-                        <TextBlock Text="{Binding Name}"
-                                   FontSize="11"
-                                   TextAlignment="Center"
-                                   TextWrapping="Wrap"
-                                   TextTrimming="CharacterEllipsis"
-                                   MaxHeight="30">
-                            <TextBlock.Style>
-                                <Style TargetType="TextBlock">
-                                    <Setter Property="Foreground" Value="{StaticResource Brush.OnSurface}"/>
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding IsDirectory}" Value="True">
-                                            <Setter Property="Foreground" Value="{StaticResource Brush.RowFolder}"/>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </TextBlock.Style>
-                        </TextBlock>
-                        <TextBlock Text="{Binding SizeDisplay}"
-                                   FontSize="10"
-                                   Foreground="{StaticResource Brush.OnSurfaceMuted}"
-                                   TextAlignment="Center"
-                                   Margin="0,2,0,0"/>
-                    </StackPanel>
-                </Border>
-            </DataTemplate>
-        </ListBox.ItemTemplate>
-    </ListBox>
+    <Grid>
+        <ListBox x:Name="MainList"
+                 ItemsSource="{Binding RowsView}"
+                 ItemContainerStyle="{StaticResource TileItemStyle}"
+                 SelectionMode="Extended"
+                 Background="{StaticResource Brush.Surface}"
+                 Foreground="{StaticResource Brush.OnSurface}"
+                 BorderThickness="0"
+                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                 ScrollViewer.VerticalScrollBarVisibility="Auto"
+                 VirtualizingPanel.IsVirtualizing="True"
+                 VirtualizingPanel.VirtualizationMode="Recycling"
+                 KeyboardNavigation.DirectionalNavigation="Continue"
+                 MouseDoubleClick="OnTileDoubleClick"
+                 KeyDown="OnTileKeyDown"
+                 SelectionChanged="OnSelectionChanged"
+                 PreviewMouseLeftButtonDown="OnListPreviewMouseDown"
+                 PreviewMouseLeftButtonUp="OnListPreviewMouseUp"
+                 MouseMove="OnListMouseMove"
+                 PreviewMouseRightButtonUp="OnTilePreviewMouseRightButtonUp">
+            <ListBox.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <WrapPanel Orientation="Horizontal" IsItemsHost="True"/>
+                </ItemsPanelTemplate>
+            </ListBox.ItemsPanel>
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <Border Width="120" Height="110" Padding="8,10">
+                        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <iconPacks:PackIconMaterial Kind="{Binding IconKind}"
+                                                        Foreground="{Binding IconBrushKey, Converter={StaticResource ResKeyToBrush}}"
+                                                        Width="40" Height="40"
+                                                        HorizontalAlignment="Center"
+                                                        Margin="0,0,0,6"/>
+                            <TextBlock Text="{Binding Name}"
+                                       FontSize="11"
+                                       TextAlignment="Center"
+                                       TextWrapping="Wrap"
+                                       TextTrimming="CharacterEllipsis"
+                                       MaxHeight="30">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="{StaticResource Brush.OnSurface}"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsDirectory}" Value="True">
+                                                <Setter Property="Foreground" Value="{StaticResource Brush.RowFolder}"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                            <TextBlock Text="{Binding SizeDisplay}"
+                                       FontSize="10"
+                                       Foreground="{StaticResource Brush.OnSurfaceMuted}"
+                                       TextAlignment="Center"
+                                       Margin="0,2,0,0"/>
+                        </StackPanel>
+                    </Border>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+
+        <Canvas IsHitTestVisible="False" ClipToBounds="True">
+            <Border x:Name="SelectionBox"
+                    Visibility="Collapsed"
+                    Background="Transparent"
+                    BorderBrush="{StaticResource Brush.Accent}"
+                    BorderThickness="1"/>
+        </Canvas>
+    </Grid>
 </UserControl>

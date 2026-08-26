@@ -254,7 +254,7 @@
         <Canvas Grid.Row="1" IsHitTestVisible="False" ClipToBounds="True">
             <Border x:Name="SelectionBox"
                     Visibility="Collapsed"
-                    Background="{StaticResource Brush.AccentSubtle}"
+                    Background="Transparent"
                     BorderBrush="{StaticResource Brush.Accent}"
                     BorderThickness="1"/>
         </Canvas>
