@@ -3,7 +3,7 @@
 ; Expects ..\publish\ to be populated by ..\publish.ps1 first.
 
 #define MyAppName        "Josha"
-#define MyAppVersion     "1.0.9"
+#define MyAppVersion     "1.0.10"
 #define MyAppPublisher   "Tomáš Trachta"
 #define MyAppExeName     "Josha.exe"
 #define MyAppSourceDir   "..\publish"
