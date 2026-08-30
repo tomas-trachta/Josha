@@ -141,12 +141,29 @@
                 </Grid.ColumnDefinitions>
 
                 <StackPanel Grid.Column="0" Orientation="Horizontal" Margin="12,0,0,0">
-                    <TextBlock Text="&#xE8B7;"
-                               FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
-                               FontSize="13"
-                               Foreground="{StaticResource Brush.Accent}"
-                               VerticalAlignment="Center"
-                               Margin="0,0,8,0"/>
+                    <!-- App mark — the "folder split" logo (installer/icon-source/josha-icon-folder.svg)
+                         redrawn as vector shapes so it stays crisp at any DPI/title-bar
+                         height instead of shipping a rasterized image asset. -->
+                    <Viewbox Width="16" Height="16" Margin="0,0,8,0" VerticalAlignment="Center">
+                        <Canvas Width="256" Height="256">
+                            <Canvas.Resources>
+                                <LinearGradientBrush x:Key="JoshaMarkBg" StartPoint="0,0" EndPoint="0,1">
+                                    <GradientStop Color="#1BAB9A" Offset="0"/>
+                                    <GradientStop Color="#0E6258" Offset="1"/>
+                                </LinearGradientBrush>
+                            </Canvas.Resources>
+                            <Rectangle Width="256" Height="256" RadiusX="52" RadiusY="52" Fill="{StaticResource JoshaMarkBg}"/>
+                            <Path Data="M52,122 V100 A10,10 0 0 1 62,90 H104 L122,116"
+                                  Stroke="#F1F8F9" StrokeThickness="11"
+                                  StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"/>
+                            <Rectangle Canvas.Left="52" Canvas.Top="116" Width="152" Height="92"
+                                       RadiusX="10" RadiusY="10"
+                                       Stroke="#F1F8F9" StrokeThickness="11"/>
+                            <Line X1="128" Y1="138" X2="128" Y2="186"
+                                  Stroke="#F1F8F9" StrokeThickness="9" Opacity="0.6"
+                                  StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+                        </Canvas>
+                    </Viewbox>
                     <TextBlock Text="{Binding Title, RelativeSource={RelativeSource AncestorType=Window}}"
                                FontSize="12"
                                Foreground="{StaticResource Brush.OnSurface}"
