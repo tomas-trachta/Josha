@@ -66,6 +66,7 @@
         <KeyBinding Key="OemComma" Modifiers="Ctrl"     Command="{Binding OpenSettingsCommand}"/>
         <KeyBinding Key="P"      Modifiers="Ctrl"       Command="{Binding OpenCommandPaletteCommand}"/>
         <KeyBinding Key="G"      Modifiers="Ctrl"       Command="{Binding ShowGitHistoryCommand}"/>
+        <KeyBinding Key="N"      Modifiers="Ctrl+Alt"   Command="{Binding AddOrEditNoteCommand}"/>
 
         <KeyBinding Key="Add"      Command="{Binding SelectByPatternCommand}"/>
         <KeyBinding Key="Subtract" Command="{Binding DeselectByPatternCommand}"/>

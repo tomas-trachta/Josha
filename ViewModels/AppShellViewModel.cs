@@ -147,6 +147,16 @@ namespace Josha.ViewModels
         public ObservableCollection<RemoteHistoryEntry> RemoteDirectoryHistory => AppServices.RemoteHistory.Recent;
         public ICommand NavigateToRemoteHistoryEntryCommand { get; }
 
+        public ObservableCollection<Note> Notes => AppServices.Notes.All;
+        public ICommand AddOrEditNoteCommand { get; }
+        public ICommand NavigateToNoteCommand { get; }
+        public ICommand DeleteNoteCommand { get; }
+
+        // MainWindow wires this — VM raises a (name, path, initialText) request
+        // and gets back null (cancelled) or (Delete, Text). Same Func-as-event
+        // pattern as OverwriteResolver / PatternPromptRequested.
+        public Func<string, string, string, (bool Delete, string Text)?>? NoteEditorRequested { get; set; }
+
         // Raised when the OpenBookmarksCommand fires; MainWindow shows the picker.
         // Plain .NET event so the VM stays free of WPF Window dependencies.
         public event Action? BookmarksPickerRequested;
@@ -230,6 +240,10 @@ namespace Josha.ViewModels
             NavigateToBookmarkCommand = new RelayCommand(b => NavigateToBookmark(b as Bookmark));
             NavigateToHistoryEntryCommand = new RelayCommand(e => NavigateToHistoryEntry(e as NavigationHistoryEntry));
             NavigateToRemoteHistoryEntryCommand = new RelayCommand(e => NavigateToRemoteHistoryEntry(e as RemoteHistoryEntry));
+
+            AddOrEditNoteCommand    = new RelayCommand(_ => OpenNoteEditor(), _ => GetNoteTarget() != null);
+            NavigateToNoteCommand   = new RelayCommand(n => _ = NavigateToNoteAsync(n as Note));
+            DeleteNoteCommand       = new RelayCommand(n => DeleteNote(n as Note));
 
             OpenNewConnectionCommand = new RelayCommand(_ => RaiseNewConnection());
             OpenSiteManagerCommand   = new RelayCommand(_ => RaiseSiteManager());
@@ -316,6 +330,107 @@ namespace Josha.ViewModels
         {
             if (bookmark == null || ActivePane == null) return;
             _ = ActivePane.NavigateAsync(bookmark.TargetPath);
+        }
+
+        // Notes attach to the single selected row, or to the current directory
+        // itself when nothing is selected — same "target the pane" fallback
+        // AddBookmarkForActivePane uses. Local-only: remote paths have no
+        // stable identity across sessions/sites (see NoteService).
+        private (string Path, bool IsDirectory)? GetNoteTarget()
+        {
+            if (ActivePane == null || ActivePane.IsRemote) return null;
+            if (ActivePane.CurrentMode != ViewMode.List) return null;
+
+            var selected = ActivePane.List.SelectedRows.Where(r => !r.IsParentLink).ToList();
+            if (selected.Count == 1)
+                return (selected[0].FullPath, selected[0].IsDirectory);
+
+            if (selected.Count == 0 && !string.IsNullOrEmpty(ActivePane.CurrentPath))
+                return (ActivePane.CurrentPath, true);
+
+            return null;
+        }
+
+        private void OpenNoteEditor()
+        {
+            var target = GetNoteTarget();
+            if (target == null || NoteEditorRequested == null) return;
+            var (path, isDirectory) = target.Value;
+
+            var existing = AppServices.Notes.GetForPath(path);
+            var name = Path.GetFileName(path.TrimEnd('\\', '/'));
+            if (string.IsNullOrEmpty(name)) name = path;
+
+            var outcome = NoteEditorRequested.Invoke(name, path, existing?.Text ?? "");
+            if (outcome == null) return;
+
+            if (outcome.Value.Delete)
+            {
+                AppServices.Notes.Delete(path);
+            }
+            else if (string.IsNullOrWhiteSpace(outcome.Value.Text))
+            {
+                // Saving empty text is equivalent to removing the note.
+                AppServices.Notes.Delete(path);
+            }
+            else
+            {
+                AppServices.Notes.Upsert(path, isDirectory, outcome.Value.Text);
+            }
+
+            var row = ActivePane?.List.Rows.FirstOrDefault(r =>
+                string.Equals(r.FullPath, path, StringComparison.OrdinalIgnoreCase));
+            if (row != null) row.HasNote = AppServices.Notes.HasNote(path);
+        }
+
+        // Navigates the active pane to the note's location — into the
+        // directory itself, or to the parent directory with the file
+        // selected — then reopens the editor pre-filled so the full text is
+        // visible, matching the sidebar's "click a note" contract.
+        private async Task NavigateToNoteAsync(Note? note)
+        {
+            if (note == null || ActivePane == null || NoteEditorRequested == null) return;
+
+            var target = note.IsDirectory ? note.TargetPath : Path.GetDirectoryName(note.TargetPath);
+            if (string.IsNullOrEmpty(target)) return;
+
+            await ActivePane.NavigateAsync(target);
+
+            if (!note.IsDirectory)
+            {
+                var row = ActivePane.List.Rows.FirstOrDefault(r =>
+                    string.Equals(r.FullPath, note.TargetPath, StringComparison.OrdinalIgnoreCase));
+                if (row != null)
+                {
+                    foreach (var s in ActivePane.List.SelectedRows.ToList())
+                        s.IsSelected = false;
+                    row.IsSelected = true;
+                }
+            }
+
+            var outcome = NoteEditorRequested.Invoke(note.DisplayName, note.TargetPath, note.Text);
+            if (outcome == null) return;
+
+            if (outcome.Value.Delete || string.IsNullOrWhiteSpace(outcome.Value.Text))
+                AppServices.Notes.Delete(note.TargetPath);
+            else
+                AppServices.Notes.Upsert(note.TargetPath, note.IsDirectory, outcome.Value.Text);
+
+            var updatedRow = ActivePane.List.Rows.FirstOrDefault(r =>
+                string.Equals(r.FullPath, note.TargetPath, StringComparison.OrdinalIgnoreCase));
+            if (updatedRow != null) updatedRow.HasNote = AppServices.Notes.HasNote(note.TargetPath);
+        }
+
+        // Sidebar right-click delete — bypasses the editor entirely so
+        // removing a note doesn't require opening it first.
+        private void DeleteNote(Note? note)
+        {
+            if (note == null) return;
+            AppServices.Notes.Delete(note.TargetPath);
+
+            var row = ActivePane?.List.Rows.FirstOrDefault(r =>
+                string.Equals(r.FullPath, note.TargetPath, StringComparison.OrdinalIgnoreCase));
+            if (row != null) row.HasNote = false;
         }
 
         private void RefreshResourceUsage()
@@ -731,6 +846,7 @@ namespace Josha.ViewModels
             AddCmd("Select by pattern",    SelectByPatternCommand,     "NumPad +");
             AddCmd("Deselect by pattern",  DeselectByPatternCommand,   "NumPad -");
             AddCmd("Invert selection",     InvertSelectionCommand,     "NumPad *");
+            AddCmd("Add/edit note…",       AddOrEditNoteCommand,       "Ctrl+Alt+N");
             AddCmd("New connection…",      OpenNewConnectionCommand,   "Ctrl+Shift+N");
             AddCmd("Site manager…",        OpenSiteManagerCommand,     "Ctrl+Shift+M");
             AddCmd("Settings…",            OpenSettingsCommand,        "Ctrl+,");
@@ -744,6 +860,19 @@ namespace Josha.ViewModels
                     Title = bm.Name,
                     Subtitle = path,
                     Action = () => { if (ActivePane != null) _ = ActivePane.NavigateAsync(path); },
+                    CategoryOrder = 2,
+                });
+            }
+
+            foreach (var note in Notes)
+            {
+                var captured = note;
+                items.Add(new CommandPaletteItem
+                {
+                    Category = "Note",
+                    Title = captured.DisplayName,
+                    Subtitle = captured.Snippet,
+                    Action = () => _ = NavigateToNoteAsync(captured),
                     CategoryOrder = 2,
                 });
             }

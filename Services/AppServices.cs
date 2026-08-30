@@ -12,6 +12,7 @@ namespace Josha.Services
         public static UndoBufferService Undo { get; private set; } = null!;
         public static NavigationHistoryService History { get; private set; } = null!;
         public static RemoteHistoryService RemoteHistory { get; private set; } = null!;
+        public static NoteService Notes { get; private set; } = null!;
 
         public static AppSettings Settings { get; private set; } = new();
         public static event Action? SettingsChanged;
@@ -28,6 +29,7 @@ namespace Josha.Services
             Undo = new UndoBufferService();
             History = new NavigationHistoryService();
             RemoteHistory = new RemoteHistoryService();
+            Notes = new NoteService();
 
             Settings = SettingsComponent.Load();
 

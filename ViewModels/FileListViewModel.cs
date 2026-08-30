@@ -194,6 +194,14 @@ namespace Josha.ViewModels
                 return;
             }
 
+            // Remote rows have no locally-stable identity for notes (see
+            // NoteService), so only stamp the indicator for local panes.
+            if (!fs.IsRemote)
+            {
+                foreach (var r in newRows)
+                    r.HasNote = AppServices.Notes.HasNote(r.FullPath);
+            }
+
             Rows.Clear();
             foreach (var r in newRows)
                 Rows.Add(r);

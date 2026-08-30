@@ -199,6 +199,16 @@
                                                 </Style>
                                             </TextBlock.Style>
                                         </TextBlock>
+
+                                        <iconPacks:PackIconMaterial Kind="NoteTextOutline"
+                                                                    Foreground="{StaticResource Brush.Accent}"
+                                                                    Width="12" Height="12"
+                                                                    Margin="6,0,0,0"
+                                                                    VerticalAlignment="Center"
+                                                                    Cursor="Hand"
+                                                                    ToolTip="Has a note — click to open"
+                                                                    MouseLeftButtonUp="OnNoteIndicatorClick"
+                                                                    Visibility="{Binding HasNote, Converter={StaticResource BoolToVis}}"/>
                                     </StackPanel>
 
                                     <TextBox Text="{Binding Name, Mode=OneTime}"

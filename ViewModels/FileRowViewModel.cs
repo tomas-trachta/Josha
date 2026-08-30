@@ -8,6 +8,7 @@ namespace Josha.ViewModels
     {
         private bool _isSelected;
         private bool _isEditing;
+        private bool _hasNote;
 
         public string Name { get; }
         public string Extension { get; }
@@ -38,6 +39,20 @@ namespace Josha.ViewModels
             {
                 if (_isEditing == value) return;
                 _isEditing = value;
+                OnPropertyChanged();
+            }
+        }
+
+        // Set by FileListViewModel after enumeration (and refreshed in place by
+        // AppShellViewModel after a note is added/edited/deleted) so the row can
+        // show a note indicator without a full directory re-enumeration.
+        public bool HasNote
+        {
+            get => _hasNote;
+            set
+            {
+                if (_hasNote == value) return;
+                _hasNote = value;
                 OnPropertyChanged();
             }
         }

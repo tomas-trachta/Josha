@@ -1,3 +1,5 @@
+![Josha — dual-pane file manager for Windows](banner.png)
+
 # Josha
 
 A dual-pane keyboard-driven file manager for Windows. Total Commander muscle memory, modern WinUI-flavoured UI, integrated FTP/SFTP, and a built-in disk-usage tree view. Local and remote tabs share the same F5/F6 workflow — copy a file from your project to a server with the same keystrokes you use to copy it across folders.

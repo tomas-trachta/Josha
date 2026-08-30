@@ -292,6 +292,22 @@ namespace Josha.Views
             vm.CancelRename(row);
         }
 
+        private void OnNoteIndicatorClick(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is not FrameworkElement fe || fe.DataContext is not FileRowViewModel row) return;
+            if (DataContext is not FileListViewModel vm) return;
+            if (Window.GetWindow(this)?.DataContext is not AppShellViewModel shell) return;
+
+            foreach (var s in vm.SelectedRows.ToList())
+                s.IsSelected = false;
+            row.IsSelected = true;
+
+            if (shell.AddOrEditNoteCommand.CanExecute(null))
+                shell.AddOrEditNoteCommand.Execute(null);
+
+            e.Handled = true;
+        }
+
         private void OnListPreviewMouseRightButtonUp(object sender, MouseButtonEventArgs e)
         {
             if (DataContext is not FileListViewModel vm) return;
@@ -351,6 +367,12 @@ namespace Josha.Views
             AddMenuCommand(menu, "_Refresh",            null,     shell.RefreshActiveCommand);
             AddMenuCommand(menu, "_Select by pattern…", "+",      shell.SelectByPatternCommand);
             AddMenuCommand(menu, "_Invert selection",   "*",      shell.InvertSelectionCommand);
+
+            if (!vm.FileSystem.IsRemote)
+            {
+                menu.Items.Add(new Separator());
+                AddMenuCommand(menu, "Add/edit _note…", "Ctrl+Alt+N", shell.AddOrEditNoteCommand);
+            }
 
             // "Open in Explorer" only makes sense for local paths; remote
             // panes have no shell-resolvable location.

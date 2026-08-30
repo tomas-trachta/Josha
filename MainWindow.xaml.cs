@@ -83,6 +83,13 @@ namespace Josha
                 return dlg.ShowDialog() == true ? dlg.Result : null;
             };
 
+            _shell.NoteEditorRequested = (name, path, initialText) =>
+            {
+                var dlg = new NoteEditorDialog(name, path, initialText) { Owner = this };
+                if (dlg.ShowDialog() != true) return null;
+                return (dlg.Deleted, dlg.Result);
+            };
+
             _shell.SettingsRequested = () =>
             {
                 var sheet = new SettingsSheet { Owner = this };

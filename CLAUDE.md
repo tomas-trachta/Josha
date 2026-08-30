@@ -63,6 +63,7 @@ All encrypted files use **Windows DPAPI** (`DataProtectionScope.CurrentUser`) wi
 - **SiteManagerComponent.cs** — `sites.dans`. DPAPI entropy `"Josha/sites/v1"`. JSON-serialized `FtpSite` list. Inlines its own DPAPI calls (predates `PersistenceFile`'s DPAPI conversion); the `BackupAndIsolate`-on-unprotect-failure pattern lives here as well, plus a user-facing toast.
 - **SnapshotComponent.cs** — `tree.{letter}.daps` per drive (encrypted text serialization of the `DirOD` tree). DPAPI entropy `"Josha/snapshot/v1"`. `MigrateLegacyOnStartup()` renames the old `tree.daps` to `tree.C.daps`. Raises `SnapshotChanged` on mutation; `SnapshotService` debounces writes by 2s.
 - **NamespaceComponent.cs** — Legacy `namespaces.dans` / `bindings.dans` for the old named-tree-namespace + Ctrl+key feature. DPAPI entropy `"Josha/namespaces/v1"` and `"Josha/bindings/v1"`. Persisted but no longer wired into the modern UI.
+- **NoteComponent.cs** — `notes.dans`. DPAPI entropy `"Josha/notes/v1"`. JSON-serialized `Note` list, same shape as `NavigationHistoryComponent`.
 
 ### Services (`Services/`)
 
@@ -75,6 +76,7 @@ All encrypted files use **Windows DPAPI** (`DataProtectionScope.CurrentUser`) wi
 - **SnapshotService.cs** — Cache + lifecycle for per-drive `DirOD` snapshots. `LoadAsync`, `ScanDriveAsync`, `ReconcileAsync`. Coalesces writes via `CancellationTokenSource` swap (2s debounce).
 - **EditOnServerWatcher.cs** — F4 on remote files: download → temp file → launch editor → watch the **directory** (not file — editors like VS Code rename-save) for Changed+Renamed (400ms debounce) → SHA-compare to skip no-op saves → upload. App-exit registry cleans up watchers.
 - **PersistenceMigrator.cs** — Versioned envelope for `.dans` files: magic `"DAS"` + version + flags + 3 reserved + payload (8-byte header). `Unwrap()` detects legacy (no envelope) and flags for re-wrap on next save.
+- **NoteService.cs** — Local-only (like `UndoBufferService`) store of file/directory notes, keyed by normalized full path in a `Dictionary<string, Note>` plus an `ObservableCollection<Note>` (`All`, newest-`ModifiedUtc`-first) backing the sidebar's NOTES section. `Upsert`/`Delete`/`GetForPath`/`HasNote`; saves to `NoteComponent` synchronously on every mutation (no debounce — notes are edited rarely).
 
 ### Models (`Models/`)
 
@@ -91,16 +93,17 @@ All encrypted files use **Windows DPAPI** (`DataProtectionScope.CurrentUser`) wi
 - **DirOD.cs / FileOD.cs** — Snapshot tree nodes. `DirOD` holds `Subdirectories[]`, `Files[]`, `SizeKiloBytes`, `IsScanned`. `GetDirSize()` parallel for top 2 levels, sequential below.
 - **SearchResult.cs** — Disk-usage search hit with `LocationPath` / `GroupLabel` for grouped UI.
 - **DANamespace.cs / DANamespaceBinding.cs** — Legacy namespace + Ctrl+key binding models.
+- **Note.cs** — Id, `TargetPath`, `IsDirectory`, `Text`, `CreatedUtc`, `ModifiedUtc`, plus computed `DisplayName` (leaf name) / `Snippet` (single-line, 80-char preview) for the sidebar.
 
 ### ViewModels (`ViewModels/`)
 
 - **BaseViewModel.cs** — `INotifyPropertyChanged` base.
 - **RelayCommand.cs** — `ICommand` via delegates with `CommandManager.RequerySuggested`.
-- **AppShellViewModel.cs** — Root VM bound to `MainWindow`. Owns `LeftColumn`/`RightColumn`, `ActiveColumn`/`ActivePane`, status text, clock. ~30+ commands (file ops, tabs, bookmarks, settings, command palette, FTP connect/quick-connect, paste from clipboard with cut/copy detection via `"Preferred DropEffect"`). Dialog-request events: `BookmarksPickerRequested`, `NewConnectionRequested`, `SiteManagerRequested`, `OverwriteResolver` (`Func`), `PatternPromptRequested`. `QuickConnect()` sorts sites by `LastUsedUtc` for Ctrl+Shift+1–9.
+- **AppShellViewModel.cs** — Root VM bound to `MainWindow`. Owns `LeftColumn`/`RightColumn`, `ActiveColumn`/`ActivePane`, status text, clock. ~30+ commands (file ops, tabs, bookmarks, notes, settings, command palette, FTP connect/quick-connect, paste from clipboard with cut/copy detection via `"Preferred DropEffect"`). Dialog-request events: `BookmarksPickerRequested`, `NewConnectionRequested`, `SiteManagerRequested`, `OverwriteResolver` (`Func`), `PatternPromptRequested`, `NoteEditorRequested` (`Func<name, path, initialText, (Delete, Text)?>`). `QuickConnect()` sorts sites by `LastUsedUtc` for Ctrl+Shift+1–9. `GetNoteTarget()` resolves the note target to the single selected row, or the pane's current directory when nothing is selected; local panes only. `DeleteNoteCommand` removes a note directly (sidebar right-click) without opening the editor.
 - **PaneColumnViewModel.cs** — One column. `Tabs` (`ObservableCollection<FilePaneViewModel>`), `ActiveTab`, tab commands (new/close/cycle), `AddRemoteTab(FtpSite)`.
 - **FilePaneViewModel.cs** — One tab. `CurrentPath`, `CurrentMode`, `IsActive`, `IsRemote`, `FileSystem` (provider), `List` (`FileListViewModel`), lazy `_diskUsageRoot` for the tree mode. Commands: switch view, back/forward, refresh. `NavigateAsync`, `ConnectAsync`, `AttachRemoteSite`, `CancelRemoteListing`.
-- **FileListViewModel.cs** — List/tiles model. `Rows` + `RowsView` (`ICollectionView` with sort/filter), `SortColumn`, `FilterText`, `ShowHiddenFiles`, `IsLoading`, `LoadError`. `RefreshAsync` enumerates via the provider.
-- **FileRowViewModel.cs** — One row. Name/Extension/FullPath/IsDirectory/SizeBytes/ModifiedUtc, `IsParentLink` (synthetic `..`), `IsSelected`, `IsEditing`, formatted `SizeDisplay`.
+- **FileListViewModel.cs** — List/tiles model. `Rows` + `RowsView` (`ICollectionView` with sort/filter), `SortColumn`, `FilterText`, `ShowHiddenFiles`, `IsLoading`, `LoadError`. `RefreshAsync` enumerates via the provider and stamps each row's `HasNote` from `NoteService` (local panes only).
+- **FileRowViewModel.cs** — One row. Name/Extension/FullPath/IsDirectory/SizeBytes/ModifiedUtc, `IsParentLink` (synthetic `..`), `IsSelected`, `IsEditing`, `HasNote`, formatted `SizeDisplay`.
 - **FilePreviewViewModel.cs** — Quick-preview pane state (text excerpt / binary hex / image / placeholder).
 - **CommandPaletteViewModel.cs** — Fuzzy palette. `FilteredItems`, `Query`, `Selected`. Top 80 results.
 - **DirectoryTreeItemViewModel.cs / FileTreeItemViewModel.cs** — Disk-usage tree nodes with lazy loading via dummy placeholder. `EnsureScanned()` does on-demand I/O for unscanned dirs.
@@ -121,7 +124,9 @@ Pane internals:
 - **TreeGraphControl** — Custom canvas tree renderer for DiskUsage mode. Viewport virtualization (binary search on flat node list), per-VM visual cache, single `DrawingVisual` for all connector lines, mouse-wheel zoom 0.1×–5×, click-drag pan, scroll/zoom mode toggle (Shift/Ctrl+wheel), `NavigateTo(SearchResult)` for path-expand-and-pan, context menus (Open / Open containing folder / Copy path).
 - **PaneTabBar**, **PathBarControl**, **DriveBarControl**, **StatusBarControl**, **FunctionKeyBar**, **SearchBox**, **QuickPreviewPane**, **QueueStatusPill**.
 
-Modal sheets: **BookmarksDialog**, **NewConnectionSheet**, **SiteManagerSheet**, **SettingsSheet**, **OverwriteSheet**, **PatternPromptDialog**, **CommandPalette**, **InternalViewer** (F3 viewer window), **Toasts/ToastHost**.
+Modal sheets: **BookmarksDialog**, **NewConnectionSheet**, **SiteManagerSheet**, **SettingsSheet**, **OverwriteSheet**, **PatternPromptDialog**, **NoteEditorDialog** (floating-card chrome matching `BookmarksDialog`/`CommandPalette`; top-aligned multiline note text with its own `NoteTextBoxStyle`, path subtitle in the header, Ctrl+Enter to save; Save/Delete/Cancel — Delete hidden for a new/empty note), **CommandPalette**, **InternalViewer** (F3 viewer window), **Toasts/ToastHost**.
+
+- **HistorySidebarView** — Left sidebar, collapsible (36px collapsed / resizable-to-420px expanded). Four sections: HISTORY, MOST VISITED, REMOTE DIRECTORIES (all double-click-to-navigate), and NOTES (single-click — jumps to the note's location, selecting the file if it's not a directory, then reopens `NoteEditorDialog` pre-filled with the full text; right-click for a "Delete note" context menu that calls `DeleteNoteCommand` directly). Notes source from `AppShellViewModel.Notes` (⇒ `AppServices.Notes.All`).
 
 - **FileIconMap.cs** (in `Views/` and `Business/`) — ~100 file extensions → icon styles (body brush, fold brush, label text). Categories: images, documents, code, web, text, archives, audio, video, executables, data, fonts. All brushes frozen for thread safety.
 
@@ -146,6 +151,7 @@ All data lives in `C:\josha_data\` (created on first write):
 | `tree.{letter}.daps` | text + envelope | DPAPI | `Josha/snapshot/v1` | per-drive `DirOD` snapshot |
 | `namespaces.dans` | TSV + envelope | DPAPI | `Josha/namespaces/v1` | legacy namespace feature |
 | `bindings.dans` | TSV + envelope | DPAPI | `Josha/bindings/v1` | legacy Ctrl+key feature |
+| `notes.dans` | JSON + envelope | DPAPI | `Josha/notes/v1` | file/directory notes |
 | `logs/Josha-YYYY-MM-DD.log` | text | none | — | category-tagged logs |
 | `trash/<guid>/<name>` | raw files | none | — | staged Shift+Delete items awaiting Ctrl+Z or eviction from the undo buffer (see UndoBufferService.cs) |
 
@@ -166,4 +172,5 @@ All data lives in `C:\josha_data\` (created on first write):
 - **Edit-on-server:** watch the temp **directory** (not the file) so atomic-rename saves from VS Code / Vim / Notepad++ are caught; SHA-compare before re-upload to skip no-op saves.
 - **Command palette:** Ctrl+P; scoring is prefix > word-start > substring > subsequence; top 80.
 - **Theming:** brushes are resource-keyed (`Brush.Surface`, `Brush.Accent`, …); custom controls look them up via `ResourceKeyToBrushConverter` so theme switches propagate live.
-- **Keyboard:** function keys (F2–F8) drive ops; Ctrl+1/2/3 view modes; Ctrl+Tab / Ctrl+Left/Right cycle tabs/panes; Ctrl+Shift+1–9 quick-connect to most-recent sites; Ctrl+H toggle hidden; Ctrl+F focus filter; Ctrl+V paste (cut/copy detected via `"Preferred DropEffect"` clipboard marker); Ctrl+Z undo last local move/rename/delete (recycle-bin or Shift+Delete).
+- **Keyboard:** function keys (F2–F8) drive ops; Ctrl+1/2/3 view modes; Ctrl+Tab / Ctrl+Left/Right cycle tabs/panes; Ctrl+Shift+1–9 quick-connect to most-recent sites; Ctrl+H toggle hidden; Ctrl+F focus filter; Ctrl+V paste (cut/copy detected via `"Preferred DropEffect"` clipboard marker); Ctrl+Z undo last local move/rename/delete (recycle-bin or Shift+Delete); Ctrl+Alt+N add/edit a note on the selected file/folder (or the pane's current directory if nothing is selected).
+- **Notes:** local-only (no remote target has a stable cross-session identity). One note per path, keyed by normalized full path in `NoteService`; saving empty text deletes the note. Entry points: Ctrl+Alt+N, the empty-space pane context menu, the command palette ("Add/edit note…" plus one entry per existing note), the small note-icon indicator next to a row's name (click to edit), and the sidebar's NOTES section (click to navigate + view in full).
