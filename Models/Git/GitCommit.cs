@@ -15,5 +15,7 @@ namespace Josha.Models.Git
         public string DateDisplay => Date.LocalDateTime.ToString("yyyy-MM-dd HH:mm");
 
         public bool IsMergeCommit => ParentHashes.Count > 1;
+
+        public GitGraphRow? Graph { get; set; }
     }
 }

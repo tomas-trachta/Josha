@@ -4,6 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="clr-namespace:Josha.ViewModels"
+        xmlns:views="clr-namespace:Josha.Views"
         mc:Ignorable="d"
         Title="Git"
         Width="1200" Height="760"
@@ -74,6 +75,7 @@
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="220"/>
+                    <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
@@ -81,12 +83,31 @@
                 <TextBlock Grid.Column="0" Text="Branch" Style="{StaticResource ToolbarCaptionStyle}"/>
 
                 <ComboBox Grid.Column="1"
-                          Style="{StaticResource ModernComboBoxStyle}"
                           ItemsSource="{Binding Branches}"
                           SelectedItem="{Binding SelectedBranch}"
-                          DisplayMemberPath="DisplayName"/>
+                          DisplayMemberPath="DisplayName">
+                    <ComboBox.Style>
+                        <Style TargetType="ComboBox" BasedOn="{StaticResource ModernComboBoxStyle}">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding ShowAllBranches}" Value="True">
+                                    <Setter Property="IsEnabled" Value="False"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </ComboBox.Style>
+                </ComboBox>
 
-                <TextBlock Grid.Column="2"
+                <ToggleButton Grid.Column="2"
+                              Content="All branches"
+                              IsChecked="{Binding ShowAllBranches}"
+                              Style="{StaticResource ToolbarToggleButtonStyle}"
+                              Padding="10,0"
+                              MinHeight="24"
+                              FontSize="11"
+                              Margin="10,0,0,0"
+                              ToolTip="Show the full commit tree across every branch and tag instead of only the selected branch"/>
+
+                <TextBlock Grid.Column="3"
                            Text="{Binding RepoRoot}"
                            VerticalAlignment="Center"
                            Margin="16,0,0,0"
@@ -94,7 +115,7 @@
                            Foreground="{StaticResource Brush.OnSurfaceMuted}"
                            TextTrimming="CharacterEllipsis"/>
 
-                <Button Grid.Column="3"
+                <Button Grid.Column="4"
                         Content="Refresh"
                         Command="{Binding RefreshCommand}"
                         Style="{StaticResource SecondaryButtonStyle}"
@@ -150,26 +171,35 @@
                         <DataTemplate>
                             <Grid>
                                 <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
                                     <ColumnDefinition Width="72"/>
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
 
-                                <TextBlock Grid.Column="0"
+                                <!-- Negative vertical margin reaches through the item's
+                                     padding and bottom border so lane lines are continuous. -->
+                                <views:GitGraphCell Grid.Column="0"
+                                                    Row="{Binding Graph}"
+                                                    Width="{Binding DataContext.GraphWidth, RelativeSource={RelativeSource AncestorType=ListBox}}"
+                                                    Margin="0,-6,8,-7"
+                                                    Visibility="{Binding DataContext.IsGraphVisible, RelativeSource={RelativeSource AncestorType=ListBox}, Converter={StaticResource BoolToVis}}"/>
+
+                                <TextBlock Grid.Column="1"
                                            Text="{Binding ShortHash}"
                                            FontFamily="Cascadia Mono, Consolas"
                                            FontSize="12"
                                            Foreground="{StaticResource Brush.Accent}"
                                            VerticalAlignment="Center"/>
 
-                                <TextBlock Grid.Column="1"
+                                <TextBlock Grid.Column="2"
                                            Text="{Binding Subject}"
                                            VerticalAlignment="Center"
                                            Margin="8,0"
                                            Foreground="{StaticResource Brush.OnSurface}"
                                            TextTrimming="CharacterEllipsis"/>
 
-                                <StackPanel Grid.Column="2" Orientation="Horizontal">
+                                <StackPanel Grid.Column="3" Orientation="Horizontal">
                                     <TextBlock Text="{Binding AuthorName}"
                                                FontSize="11"
                                                Foreground="{StaticResource Brush.OnSurfaceMuted}"

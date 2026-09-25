@@ -24,9 +24,11 @@ namespace Josha.ViewModels
         private bool _isLoadingLog;
         private bool _isLoadingDiff;
         private bool _showFullFile;
+        private bool _showAllBranches;
         private string? _diffMessage;
         private string _statusText = "";
         private string _searchText = "";
+        private double _graphWidth;
 
         public string RepoRoot => _repoRoot;
 
@@ -48,7 +50,32 @@ namespace Josha.ViewModels
                 if (_searchText == value) return;
                 _searchText = value;
                 OnPropertyChanged();
+                OnPropertyChanged(nameof(IsGraphVisible));
                 CommitsView.Refresh();
+            }
+        }
+
+        // Filtering hides rows, which would leave the lane lines broken mid-
+        // branch, so the graph column collapses while a search is active.
+        public bool IsGraphVisible => string.IsNullOrWhiteSpace(_searchText);
+
+        public double GraphWidth
+        {
+            get => _graphWidth;
+            private set { _graphWidth = value; OnPropertyChanged(); }
+        }
+
+        // Shows the whole repository graph (every branch and tag) instead of
+        // just the selected branch's history.
+        public bool ShowAllBranches
+        {
+            get => _showAllBranches;
+            set
+            {
+                if (_showAllBranches == value) return;
+                _showAllBranches = value;
+                OnPropertyChanged();
+                _ = LoadLogAsync();
             }
         }
 
@@ -173,18 +200,27 @@ namespace Josha.ViewModels
             try
             {
                 var branchName = _selectedBranch?.Name;
-                var commits = await Task.Run(() => GitComponent.GetLog(_repoRoot, branchName));
+                var allBranches = _showAllBranches;
+                var commits = await Task.Run(() => GitComponent.GetLog(_repoRoot, branchName, allBranches));
+                var laneCount = await Task.Run(() => GitGraphLayout.Apply(commits));
 
+                GraphWidth = laneCount * Views.GitGraphCell.LaneWidth;
                 Commits.Clear();
                 foreach (var commit in commits) Commits.Add(commit);
 
                 SelectedCommit = Commits.FirstOrDefault();
-                StatusText = $"{Commits.Count} commit(s) on {_selectedBranch?.DisplayName ?? "(all)"}";
+                StatusText = $"{Commits.Count} commit(s) on {DescribeLogScope()}";
             }
             finally
             {
                 IsLoadingLog = false;
             }
+        }
+
+        private string DescribeLogScope()
+        {
+            if (_showAllBranches) return "all branches";
+            return _selectedBranch?.DisplayName ?? "(all)";
         }
 
         private async Task LoadCommitFilesAsync()

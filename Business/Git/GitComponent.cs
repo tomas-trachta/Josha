@@ -50,15 +50,16 @@ namespace Josha.Business.Git
             return branches;
         }
 
-        internal static List<GitCommit> GetLog(string repoRoot, string? branch)
+        internal static List<GitCommit> GetLog(string repoRoot, string? branch, bool allBranches = false)
         {
             // %b (body) goes last — it's free-form commit text, so keeping it
             // after every delimited field means nothing downstream depends on
             // it not containing anything unexpected (newlines are fine, only
             // the \x1f/\x1e control chars themselves would break parsing).
             const string format = "%H%x1f%h%x1f%an%x1f%aI%x1f%s%x1f%P%x1f%b%x1e";
-            var args = new List<string> { "log", $"--format={format}", $"-n{LogPageSize}" };
-            if (!string.IsNullOrWhiteSpace(branch)) args.Add(branch);
+            var args = new List<string> { "log", "--date-order", $"--format={format}", $"-n{LogPageSize}" };
+            if (allBranches) args.Add("--all");
+            else if (!string.IsNullOrWhiteSpace(branch)) args.Add(branch);
 
             var result = RunGit(repoRoot, args.ToArray());
             var commits = new List<GitCommit>();
